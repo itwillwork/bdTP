@@ -11,4 +11,8 @@ router.post('/create', function(req, res) {
     model.create(req.body, responceCallback(res));
 });
 
+router.get('/details/', function(req, res) {
+    model.details(req.query, responceCallback(res));
+});
+
 module.exports = router;
