@@ -23,4 +23,8 @@ router.post('/unfollow/', function(req, res) {
     model.unfollow(req.body, responceCallback(res));
 });
 
+router.post('/updateProfile/', function(req, res) {
+    model.updateProfile(req.body, responceCallback(res));
+});
+
 module.exports = router;

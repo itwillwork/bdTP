@@ -173,3 +173,41 @@ module.exports.unfollow = function(dataObject, responceCallback) {
 		}
 	});
 }
+
+module.exports.updateProfile = function(dataObject, responceCallback) {
+	//TODO можно попробовать убрать для оптимизации
+	async.parallel([
+		function (callback) {
+			if (!helper.requireFields(dataObject, ['about', 'user', 'name'])) {
+				callback(error.requireFields, null);
+			} else {
+				callback(null, null);
+			}
+		},
+		function (callback) {
+			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
+				[dataObject.user], 
+				function(err, res) {
+					if (err) {
+						callback( helper.mysqlError(err.errno) , null);
+					} else if (res[0].count == 0) {
+						callback( error.norecord, null);
+					} else {
+						callback(null, res);
+					}
+				});
+		}
+	],
+	function(err, results){
+		if (err) responceCallback(err.code, err.message);
+		else {
+			//запрос проверен
+			connection.db.query("UPDATE user SET name = ?, about = ? WHERE email = ?", 
+				[dataObject.name, dataObject.about, dataObject.user], 
+				function(err, res) {
+					if (err) callback( helper.mysqlError(err.errno) , null);
+					else module.exports.details({user: dataObject.user}, responceCallback);
+				});
+		}
+	});
+}
