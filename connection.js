@@ -4,4 +4,5 @@ var mysql = require('mysql'),
         user: 'root',
         password: '5905'
     });
+connection.connect();
 module.exports.db = connection;

@@ -1,9 +1,22 @@
 var connection = require('./../connection'),
-    response = {
-        "code": 0,
-        "response": {
-            "field": "value"
-        }
-    };
+    async = require('async');
 
-module.exports.response = response;
+module.exports.response = {};
+
+module.exports.create = function(responceCallback) {
+	async.series([
+		function(callback) {
+		    connection.db.query('SHOW DATABASES', function(err, res) {
+		    	if (err) 
+		    		callback(3, res);
+		        else
+		        	callback(err, res);
+		    })
+		}
+	], function(err, res) {
+	    if (err) 
+	    	responceCallback(err, "ошибка");
+	    else
+	    	responceCallback(0, res[0]);	
+	});
+}
