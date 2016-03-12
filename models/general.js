@@ -1,9 +1,23 @@
 var connection = require('./../connection'),
-    response = {
-        "code": 0,
-        "response": {
-            "field": "value"
-        }
-    };
+	async = require('async'),
+	helper = require('./../helper');
 
-module.exports.response = response;
+module.exports.clear = function (responceCallback) {
+	async.parallel([
+		function(callback){
+			connection.db.query("TRUNCATE TABLE user", 
+				function(err, res) {
+					if (err) callback( helper.mysqlError(err.errno) , null);
+					else callback(null, res);
+				});
+		}
+	],
+	function(err, results){
+		if (err) responceCallback(err.code, err.message);
+		else responceCallback(0, "OK");	
+	});
+}
+
+module.exports.status = function (responceCallback) {
+	//TODO create method
+}

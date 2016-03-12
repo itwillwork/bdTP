@@ -1,8 +1,7 @@
 var express = require('express'),
     router = express.Router(),
     model = require('./../models/forum'),
-    async = require('async'),
-    responceCallback = require('./../responce')
+    responceCallback = require('./../responce');
 
 router.get('/', function(req, res) {
     res.send('forum routing');
