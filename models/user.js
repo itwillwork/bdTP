@@ -1,1 +1,9 @@
-module.exports.x = 5;
+var connection = require('./../connection'),
+    response = {
+        "code": 0,
+        "response": {
+            "field": "value"
+        }
+    };
+
+module.exports.response = response;
