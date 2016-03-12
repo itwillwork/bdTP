@@ -15,4 +15,12 @@ router.get('/details/', function(req, res) {
     model.details(req.query, responceCallback(res));
 });
 
+router.post('/follow/', function(req, res) {
+    model.follow(req.body, responceCallback(res));
+});
+
+router.post('/unfollow/', function(req, res) {
+    model.unfollow(req.body, responceCallback(res));
+});
+
 module.exports = router;

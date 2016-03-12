@@ -8,8 +8,9 @@ module.exports.create = function(dataObject, responceCallback) {
 		function(callback) {
 			if (!helper.requireFields(dataObject, ['username', 'about', 'name', 'email'])) {
 				callback(error.requireFields, null);
+			} else {
+				callback(null, null);
 			}
-			callback(null, null);
 		},
 		function(callback) {
 			connection.db.query("INSERT INTO user (username, about, name, email, isAnonymous) values (?, ?, ?, ?, ?)", 
@@ -45,8 +46,9 @@ module.exports.details = function(dataObject, responceCallback) {
 		function (callback) {
 			if (!helper.requireFields(dataObject, ['user'])) {
 				callback(error.requireFields, null);
+			} else {
+				callback(null, null);
 			}
-			callback(null, null);
 		},
 		function (callback) {
 			connection.db.query("SELECT * FROM user WHERE email = ?", 
@@ -81,5 +83,93 @@ module.exports.details = function(dataObject, responceCallback) {
 			"subscriptions": [],
 			"username": res[1][0].username 
 		});	
+	});
+}
+
+module.exports.follow = function(dataObject, responceCallback) {
+	async.parallel([
+		function (callback) {
+			if (!helper.requireFields(dataObject, ['follower', 'followee'])) {
+				callback(error.requireFields, null);
+			} else {
+				callback(null, null);
+			}
+		},
+		function (callback){
+			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
+				[dataObject.follower], 
+				function(err, res) {
+					if (err) {
+						callback( helper.mysqlError(err.errno) , null);
+					} else if (res[0].count == 0) {
+						callback( error.norecord, null);
+					} else {
+						callback(null, res);
+					}
+				});
+		},
+		function (callback){
+			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
+				[dataObject.followee], 
+				function(err, res) {
+					if (err) {
+						callback( helper.mysqlError(err.errno) , null);
+					} else if (res[0].count == 0) {
+						callback( error.norecord, null);
+					} else {
+						callback(null, res);
+					}
+				});
+		},
+		function (callback){
+			connection.db.query("SELECT COUNT(*) AS count FROM followers WHERE followerEmail = ? AND followeeEmail = ?",
+				[dataObject.follower, dataObject.followee], 
+				function(err, res) {
+					if (err) {
+						callback( helper.mysqlError(err.errno) , null);
+					} else if (res[0].count > 0) {
+						callback( error.duplicateRecord, null);
+					} else {
+						callback(null, res);
+					}
+				});
+		}
+	],
+	function(err, results){
+		if (err) responceCallback(err.code, err.message);
+		else {
+			//запрос проверен
+			connection.db.query("INSERT INTO followers (followerEmail, followeeEmail) values (?, ?)", 
+				[dataObject.follower, dataObject.followee], 
+				function(err, res) {
+					if (err) callback( helper.mysqlError(err.errno) , null);
+					else module.exports.details({user: dataObject.follower}, responceCallback);
+				});
+		}
+	});
+}
+
+module.exports.unfollow = function(dataObject, responceCallback) {
+	//TODO можно попробовать убрать для оптимизации
+	async.parallel([
+		function (callback) {
+			if (!helper.requireFields(dataObject, ['follower', 'followee'])) {
+				callback(error.requireFields, null);
+			} else {
+				callback(null, null);
+			}
+		},
+	],
+	function(err, results){
+		if (err) responceCallback(err.code, err.message);
+		else {
+			//запрос проверен
+			connection.db.query("DELETE FROM followers WHERE followerEmail = ? AND followeeEmail = ?", 
+				[dataObject.follower, dataObject.followee], 
+				function(err, res) {
+					if (err) callback( helper.mysqlError(err.errno) , null);
+					else module.exports.details({user: dataObject.follower}, responceCallback);
+				});
+		}
 	});
 }
