@@ -64,7 +64,7 @@ module.exports.create = function(dataObject, responceCallback) {
 module.exports.details = function(dataObject, responceCallback) {
 	async.series([
 		function (callback) {
-			if (!helper.possibleValues(dataObject.related, ['user', ''])) {
+			if (!helper.possibleValues([dataObject.related], [['user', '']])) {
 				callback(error.semantic, null);
 			} else if (!helper.requireFields(dataObject, ['forum'])) {
 				callback(error.requireFields, null);
@@ -93,7 +93,7 @@ module.exports.details = function(dataObject, responceCallback) {
 					user: results.userEmail
 				}
 				userModel.moreDetails(userObject, userObject, userObject, 
-					wrapperFunctionForUser(responceCallback, results));
+					wrapperFunctionForDetails(responceCallback, results));
 			} else {
 				responceCallback(0, {
 					"id": results.id,
@@ -112,7 +112,7 @@ module.exports.details = function(dataObject, responceCallback) {
  * @param  {Object} results 
  * @return {Function} callback for userModel.moreDetails
  */
-function wrapperFunctionForUser(responceCallback, results) {
+function wrapperFunctionForDetails(responceCallback, results) {
 	return function(code, info) {
 				// предполагается, что code === 0, так как юзер должен быть
 				responceCallback(code, {
@@ -134,7 +134,71 @@ module.exports.listThreads = function(dataObject, responceCallback) {
 	responceCallback(0, "Метод пока не реализован");
 }
 
+/**
+ * составитель запросов для listUsers
+ */
+function getSQLForListUsers(wherefrom) {
+	//TODO сросить насчет since_id что это такое и зачем
+	var sql = 'SELECT userEmail AS user FROM forum';
+	sql += ' GROUP BY user ';
+	if (wherefrom.order !== 'asc') {
+		wherefrom.order = 'desc';
+	}
+	sql += ' ORDER BY user ' + wherefrom.order;
+	if (wherefrom.limit) {
+		sql += ' LIMIT ' + wherefrom.limit;
+	}
+	return sql;
+} 
+
 module.exports.listUsers = function(dataObject, responceCallback) {
-	//TODO добавить метод
-	responceCallback(0, "Метод пока не реализован");
+	async.series([
+		function (callback) {
+			if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
+				callback(error.semantic, null);
+			} else {
+				callback(null, null);
+			}
+		},
+		function (callback) {
+			if (!helper.requireFields(dataObject, ['forum'])) {
+				callback(error.requireFields, null);
+			} else {
+				callback(null, null);
+			}
+		},
+		function (callback) {
+			//connection.db.query( 'SELECT userEmail AS user FROM forum GROUP BY userEmail',
+			connection.db.query( getSQLForListUsers(dataObject),
+				function(err, res) {
+					if (err) err = helper.mysqlError(err.errno);
+					else {
+						if (res.length === 0) err = error.norecord;
+					}
+					if (err) callback(err, null);
+					else callback(null, res);
+				});
+		}
+	], function(err, results) {
+		if (err) responceCallback(err.code, err.message);
+		else {
+			//преобразуем обекты содержащие emailы в функции для асинхронного вызова
+			results = results[2].map( function(elem) {
+				return function (callback) {
+					userModel.moreDetails(elem, elem, elem, 
+						function(code, res) {
+							callback(null, res);
+						});
+				}
+			});
+			//асинхронный запрос всех юзеров
+			async.parallel(results,
+			function (err, results){
+				if (err) responceCallback(err.code, err.message);
+				else {
+					responceCallback(0, results);
+				}
+			});
+		}
+	});
 }

@@ -58,25 +58,57 @@ module.exports.details = function(dataObject, responceCallback) {
 }
 
 module.exports.listFollowing = function(dataObject, responceCallback) {
-	if (!helper.requireFields(dataObject, ['user'])) {
-		callback(error.requireFields, null);
-	} else {
-		var userEmail = {
-			user: dataObject.user
+	async.series([
+		function (callback) {
+			if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
+				callback(error.semantic, null);
+			} else {
+				callback(null, null);
+			}
+		},
+		function (callback) {
+			if (!helper.requireFields(dataObject, ['user'])) {
+				callback(error.requireFields, null);
+			} else {
+				callback(null, null);
+			}
 		}
-		module.exports.moreDetails(userEmail, userEmail, dataObject, responceCallback);
-	}
+	], function(err, res) {
+		if (err) responceCallback(err.code, err.message);
+		else {
+			var userEmail = {
+				user: dataObject.user
+			}
+			module.exports.moreDetails(userEmail, userEmail, dataObject, responceCallback);
+		}
+	});
 }
 
 module.exports.listFollowers = function(dataObject, responceCallback) {
-	if (!helper.requireFields(dataObject, ['user'])) {
-		callback(error.requireFields, null);
-	} else {
-		var userEmail = {
-			user: dataObject.user
+	async.series([
+		function (callback) {
+			if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
+				callback(error.semantic, null);
+			} else {
+				callback(null, null);
+			}	
+		},
+		function (callback) {
+			if (!helper.requireFields(dataObject, ['user'])) {
+				callback(error.requireFields, null);
+			} else {
+				callback(null, null);
+			}
 		}
-		module.exports.moreDetails(userEmail, dataObject, userEmail, responceCallback);
-	}
+	], function(err, res) {
+		if (err) responceCallback(err.code, err.message);
+		else {
+			var userEmail = {
+				user: dataObject.user
+			}
+			module.exports.moreDetails(userEmail, dataObject, userEmail, responceCallback);
+		}
+	}); 
 }
 
 module.exports.follow = function(dataObject, responceCallback) {

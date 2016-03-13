@@ -14,15 +14,18 @@ module.exports.requireFields = function (dataObject, requriedFields) {
 };
 /**
  * Проверяет подходит ли значение под возможные варинаты
- * @param  {String} dataObject 
+ * @param  {Array} dataObject 
  * @param  {Array} possibleValues 
  * @return {Boolean}
  */
 module.exports.possibleValues = function (dataObject, possibleValues) {
-	//если не определенная переменная
-	if (dataObject === undefined) return true;
-	for (var i = 0; i < possibleValues.length; i++) {
-		if (dataObject === possibleValues[i]) return true;
+	for (var key = 0; key < dataObject.length; key++) {
+		//TODO улучшить через every
+		//если не определенная переменная
+		if (dataObject[key] === undefined) return true;
+		for (var i = 0; i < possibleValues[key].length; i++) {
+			if (dataObject[key] === possibleValues[key][i]) return true;
+		}
 	}
 	return false;
 }
@@ -40,15 +43,15 @@ module.exports.errors = {
 	},
 	duplicateRecord: {
 		code: 5,
-		message: "Дублирующася запись"
+		message: "Дублирующася запись в таблицу"
 	},
 	norecord: {
 		code: 1,
-		message: "Такой записи нет"
+		message: "Такой записи в таблице нет"
 	},
 	semantic: {
 		code: 4,
-		message: "Ошибка в запросе"
+		message: "Семантическая ошибка запроса"
 	},
 	notWrite: {
 		code: 1,
@@ -57,7 +60,7 @@ module.exports.errors = {
 };
 /**
  * Интерпритатор ошибок из mysql
- * @param  {[type]} errCode [description]
+ * @param  {Number} errCode код ошибки из mysql
  * @return подбирает нужную ошибку из errors
  */
 module.exports.mysqlError = function (errCode) {
@@ -68,7 +71,11 @@ module.exports.mysqlError = function (errCode) {
 		case 1064:
 			return this.errors.semantic;
 			break;
+		case 1327:
+			return this.errors.semantic;
+			break;
 		default:
+			//console.log(errCode);
 			return this.errors.unknown;
 			break;
 	}
