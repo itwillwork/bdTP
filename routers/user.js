@@ -15,6 +15,18 @@ router.get('/details/', function(req, res) {
     model.details(req.query, responceCallback(res));
 });
 
+router.get('/listFollowing/', function(req, res) {
+    model.listFollowing(req.query, responceCallback(res));
+});
+
+router.get('/listFollowers/', function(req, res) {
+    model.listFollowers(req.query, responceCallback(res));
+});
+
+router.get('/listPosts/', function(req, res) {
+    model.listPosts(req.query, responceCallback(res));
+});
+
 router.post('/follow/', function(req, res) {
     model.follow(req.body, responceCallback(res));
 });

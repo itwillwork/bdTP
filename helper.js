@@ -28,7 +28,7 @@ module.exports.errors = {
 		message: "Дублирующася запись"
 	},
 	norecord: {
-		code: 4,
+		code: 1,
 		message: "Такой записи нет"
 	},
 	semanticError: {

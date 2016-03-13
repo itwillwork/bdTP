@@ -16,7 +16,8 @@ module.exports.create = function(dataObject, responceCallback) {
 			connection.db.query("INSERT INTO user (username, about, name, email, isAnonymous) values (?, ?, ?, ?, ?)", 
 				[dataObject.username, dataObject.about, dataObject.name, dataObject.email, !!(dataObject.isAnonymous)], 
 				function(err, res) {
-					if (err) callback( helper.mysqlError(err.errno) , null);
+					if (err) err = helper.mysqlError(err.errno);
+					if (err) callback(err, null);
 					else callback(null, res);
 				});
 		},
@@ -24,7 +25,8 @@ module.exports.create = function(dataObject, responceCallback) {
 			connection.db.query("SELECT * FROM user WHERE email = ?", 
 				[dataObject.email], 
 				function(err, res) {
-					if (err) callback( helper.mysqlError(err.errno) , null);
+					if (err) err = helper.mysqlError(err.errno);
+					if (err) callback(err, null);
 					else callback(null, res);
 				});
 		}
@@ -42,26 +44,33 @@ module.exports.create = function(dataObject, responceCallback) {
 }
 
 module.exports.details = function(dataObject, responceCallback) {
-	async.series([
-		function (callback) {
-			if (!helper.requireFields(dataObject, ['user'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
-			}
-		},
-		function (callback) {
-			connection.db.query("SELECT * FROM user WHERE email = ?", 
-				[dataObject.user], 
-				function(err, res) {
-					if (err) callback( helper.mysqlError(err.errno) , null);
-					else callback(null, res);
-				});
+	if (!helper.requireFields(dataObject, ['user'])) {
+		callback(error.requireFields, null);
+	} else {
+		module.exports.moreDetails(dataObject, dataObject, dataObject, responceCallback);
+	}
+}
+
+module.exports.listFollowing = function(dataObject, responceCallback) {
+	if (!helper.requireFields(dataObject, ['user'])) {
+		callback(error.requireFields, null);
+	} else {
+		var userEmail = {
+			user: dataObject.user
 		}
-	], function(err, res) {
-		if (err) responceCallback(err.code, err.message);
-		else module.exports.moreDetails(res[1][0], dataObject, dataObject, responceCallback);
-	});
+		module.exports.moreDetails(userEmail, userEmail, dataObject, responceCallback);
+	}
+}
+
+module.exports.listFollowers = function(dataObject, responceCallback) {
+	if (!helper.requireFields(dataObject, ['user'])) {
+		callback(error.requireFields, null);
+	} else {
+		var userEmail = {
+			user: dataObject.user
+		}
+		module.exports.moreDetails(userEmail, dataObject, userEmail, responceCallback);
+	}
 }
 
 module.exports.follow = function(dataObject, responceCallback) {
@@ -77,39 +86,36 @@ module.exports.follow = function(dataObject, responceCallback) {
 			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
 				[dataObject.follower], 
 				function(err, res) {
-					if (err) {
-						callback( helper.mysqlError(err.errno) , null);
-					} else if (res[0].count == 0) {
-						callback( error.norecord, null);
-					} else {
-						callback(null, res);
+					if (err) err = helper.mysqlError(err.errno);
+					else {
+						if (res[0].count == 0) err = error.norecord;
 					}
+					if (err) callback(err, null);
+					else callback(null, res);
 				});
 		},
 		function (callback){
 			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
 				[dataObject.followee], 
 				function(err, res) {
-					if (err) {
-						callback( helper.mysqlError(err.errno) , null);
-					} else if (res[0].count == 0) {
-						callback( error.norecord, null);
-					} else {
-						callback(null, res);
+					if (err) err = helper.mysqlError(err.errno);
+					else {
+						if (res[0].count == 0) err = error.norecord;
 					}
+					if (err) callback(err, null);
+					else callback(null, res);
 				});
 		},
 		function (callback){
 			connection.db.query("SELECT COUNT(*) AS count FROM followers WHERE followerEmail = ? AND followeeEmail = ?",
 				[dataObject.follower, dataObject.followee], 
 				function(err, res) {
-					if (err) {
-						callback( helper.mysqlError(err.errno) , null);
-					} else if (res[0].count > 0) {
-						callback( error.duplicateRecord, null);
-					} else {
-						callback(null, res);
+					if (err) err = helper.mysqlError(err.errno);
+					else {
+						if (res[0].count > 0) err = error.duplicateRecord;
 					}
+					if (err) callback(err, null);
+					else callback(null, res);
 				});
 		}
 	],
@@ -145,7 +151,8 @@ module.exports.unfollow = function(dataObject, responceCallback) {
 			connection.db.query("DELETE FROM followers WHERE followerEmail = ? AND followeeEmail = ?", 
 				[dataObject.follower, dataObject.followee], 
 				function(err, res) {
-					if (err) callback( helper.mysqlError(err.errno) , null);
+					if (err) err = helper.mysqlError(err.errno);
+					if (err) callback(err, null);
 					else module.exports.details({user: dataObject.follower}, responceCallback);
 				});
 		}
@@ -166,13 +173,12 @@ module.exports.updateProfile = function(dataObject, responceCallback) {
 			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
 				[dataObject.user], 
 				function(err, res) {
-					if (err) {
-						callback( helper.mysqlError(err.errno) , null);
-					} else if (res[0].count == 0) {
-						callback( error.norecord, null);
-					} else {
-						callback(null, res);
+					if (err) err = helper.mysqlError(err.errno)
+					else {
+						if (res[0].count == 0) err = error.norecord;
 					}
+					if (err) callback(err, null);
+					else callback(null, res);
 				});
 		}
 	],
@@ -194,6 +200,7 @@ module.exports.updateProfile = function(dataObject, responceCallback) {
  * составитель запросов для user.listFollowers и user.listFollowing
  */
 function getSQLForFollowers (target, wherefore, wherefrom) {
+	//TODO сросить насчет since_id что это такое и зачем
 	var sql = 'SELECT ' + target + ' FROM followers ';
 	if (wherefrom.order !== 'asc') {
 		wherefrom.order = 'desc';
@@ -210,52 +217,65 @@ function getSQLForFollowers (target, wherefore, wherefrom) {
 } 
 
 module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, responceCallback) {
-	async.parallel([
-		function (callback) {		
+	async.parallel({
+		userInfo: function (callback) {
+			connection.db.query("SELECT * FROM user WHERE email = ?", 
+				[dataObject.user], 
+				function(err, res) {
+					if (err) err = helper.mysqlError(err.errno) 
+					else {
+						if (res.length === 0) err = error.norecord;
+					}
+					if (err) callback(err, null);
+					else callback(null, res);
+				});
+		},
+		followers: function (callback) {		
 			connection.db.query( getSQLForFollowers('followeeEmail', 'followerEmail', listFollowers),
 				[listFollowers.user], 
 				function(err, res) {
-					if (err) {
-						callback( helper.mysqlError(err.errno) , null);
-					} else {
-						callback(null, res);
-					}
+					if (err) err = helper.mysqlError(err.errno);
+					if (err) callback(err, null);
+					else callback(null, res);
 				});
 		},
-		function (callback) {
+		following: function (callback) {
 			connection.db.query( getSQLForFollowers('followerEmail', 'followeeEmail', listFollowers),
 				[listFollowers.user], 
 				function(err, res) {
-					if (err) {
-						callback( helper.mysqlError(err.errno) , null);
-					} else {
-						callback(null, res);
-					}
+					if (err) err = helper.mysqlError(err.errno);
+					if (err) callback(err, null);
+					else callback(null, res);
 				});
 		},
-		function (callback) {
+		subscriptions: function (callback) {
 			//TODO subscribes
-			callback(null, null);
+			callback(null, []);
 		}
-	],
-	function(err, results){
+	},
+	function (err, results) {
 		if (err) responceCallback(err.code, err.message);
 		else {
 			responceCallback(0, {
-			"about": dataObject.about,
-			"email": dataObject.email,
-			"followers": results[1].map(function(elem) {
-						  return elem.followerEmail;
-						}),
-			"following": results[0].map(function(elem) {
+			"about": results.userInfo[0].about,
+			"email": results.userInfo[0].email,
+			"followers": results.followers.map(function(elem) {
 						  return elem.followeeEmail;
 						}),
-			"id": dataObject.id,
-			"isAnonymous": !!(dataObject.isAnonymous),
-			"name": dataObject.name,
-			"subscriptions": [],
-			"username": dataObject.username 
-		});	
+			"following": results.following.map(function(elem) {
+						  return elem.followerEmail;
+						}),
+			"id": results.userInfo[0].id,
+			"isAnonymous": !!(results.userInfo[0].isAnonymous),
+			"name": results.userInfo[0].name,
+			"subscriptions": results.subscriptions,
+			"username": results.userInfo[0].username 
+			});	
 		}
 	});
+}
+
+module.exports.listPosts = function(dataObject, responceCallback) {
+	//TODO добавить метод
+	responceCallback(0, "Метод пока не реализован");
 }
