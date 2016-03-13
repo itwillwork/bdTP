@@ -115,6 +115,11 @@ module.exports.update =  function(dataObject, responceCallback) {
 }
 
 module.exports.vote =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	connection.db.query('UPDATE thread SET points = points + ?,  likes = likes + IF(? = 1, 1, 0),  dislikes = dislikes + IF(? = -1, 1, 0) WHERE id = ?;', 
+		[dataObject.vote, dataObject.vote, dataObject.vote, dataObject.thread], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			responceCallback(0, dataObject);
+		});
 }
