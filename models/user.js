@@ -287,8 +287,13 @@ module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, 
 				});
 		},
 		subscriptions: function (callback) {
-			//TODO subscribes
-			callback(null, []);
+			connection.db.query( 'SELECT threadId FROM subscribes WHERE userEmail = ?',
+				[dataObject.user], 
+				function(err, res) {
+					if (err) err = helper.mysqlError(err.errno);
+					if (err) callback(err, null);
+					else callback(null, res);
+				});
 		}
 	},
 	function (err, results) {
@@ -307,7 +312,9 @@ module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, 
 			"id": results.userInfo.id,
 			"isAnonymous": !!(results.userInfo.isAnonymous),
 			"name": results.userInfo.name,
-			"subscriptions": results.subscriptions,
+			"subscriptions": results.subscriptions.map(function(elem) {
+						  return elem.threadId;
+						}),
 			"username": results.userInfo.username 
 			});	
 		}
