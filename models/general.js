@@ -4,6 +4,7 @@ var connection = require('./../connection'),
 
 module.exports.clear = function (responceCallback) {
 	async.parallel([
+		/*
 		function(callback){
 			connection.db.query("TRUNCATE TABLE user", 
 				function(err, res) {
@@ -13,6 +14,14 @@ module.exports.clear = function (responceCallback) {
 		},
 		function(callback){
 			connection.db.query("TRUNCATE TABLE forum", 
+				function(err, res) {
+					if (err) callback( helper.mysqlError(err.errno) , null);
+					else callback(null, res);
+				});
+		}
+		*/
+		function(callback){
+			connection.db.query("TRUNCATE TABLE thread", 
 				function(err, res) {
 					if (err) callback( helper.mysqlError(err.errno) , null);
 					else callback(null, res);
