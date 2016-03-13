@@ -3,28 +3,24 @@ var express = require('express'),
     model = require('./../models/forum'),
     responceCallback = require('./../responce');
 
-router.get('/', function(req, res) {
-    res.send('forum routing');
-});
-
-router.get('/create', function(req, res) {
-    model.create(responceCallback(res));
+router.post('/create', function(req, res) {
+    model.create(req.body, responceCallback(res));
 });
 
 router.get('/details', function(req, res) {
-    res.send('forum details');
+    model.details(req.query, responceCallback(res));
 });
 
 router.get('/listPosts', function(req, res) {
-    res.send('forum listPosts');
+    model.listPosts(req.query, responceCallback(res));
 });
 
 router.get('/listThreads', function(req, res) {
-    res.send('forum listThreads');
+    model.listThreads(req.query, responceCallback(res));
 });
 
 router.get('/listUsers', function(req, res) {
-    res.send('forum listUsers');
+    model.listUsers(req.query, responceCallback(res));
 });
 
 module.exports = router;
