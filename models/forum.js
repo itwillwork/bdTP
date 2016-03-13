@@ -1,6 +1,7 @@
 var connection = require('./../connection'),
 	helper = require('./../helper'),
 	async = require('async'),
+	userModel = require('./user.js'),
 	error = helper.errors;
 
 module.exports.create = function(dataObject, responceCallback) {
@@ -61,51 +62,66 @@ module.exports.create = function(dataObject, responceCallback) {
 
 
 module.exports.details = function(dataObject, responceCallback) {
-	//TODO валидация возможных значений
-	/*console.log(dataObject.related);
-	if (!helper.requireFields(dataObject, ['forum'])) {
-		callback(error.requireFields, null);
-	} else {
-		module.exports.moreDetails(dataObject, responceCallback);
-	}
-	async.parallel({
-		userInfo: function (callback) {
-			//TODO реализовать
-			callback(null, null);
+	async.series([
+		function (callback) {
+			if (!helper.possibleValues(dataObject.related, ['user', ''])) {
+				callback(error.semantic, null);
+			} else if (!helper.requireFields(dataObject, ['forum'])) {
+				callback(error.requireFields, null);
+			} else {
+				callback(null, null);
+			}
 		},
-		forumInfo: function (callback) {		
+		function (callback) {
 			connection.db.query('SELECT * FROM forum WHERE shortname = ?',
-				[listFollowers.user], 
+				[dataObject.forum], 
 				function(err, res) {
 					if (err) err = helper.mysqlError(err.errno);
+					else {
+						if (res.length === 0) err = error.norecord;
+					}
 					if (err) callback(err, null);
 					else callback(null, res);
 				});
-		},
-	},
-	function (err, results) {
+		}
+	], function(err, results) {
 		if (err) responceCallback(err.code, err.message);
 		else {
-			responceCallback(0, {
-			"about": results.userInfo[0].about,
-			"email": results.userInfo[0].email,
-			"followers": results.followers.map(function(elem) {
-						  return elem.followeeEmail;
-						}),
-			"following": results.following.map(function(elem) {
-						  return elem.followerEmail;
-						}),
-			"id": results.userInfo[0].id,
-			"isAnonymous": !!(results.userInfo[0].isAnonymous),
-			"name": results.userInfo[0].name,
-			"subscriptions": results.subscriptions,
-			"username": results.userInfo[0].username 
-			});	
+			results = results[1][0];
+			if (dataObject.related === 'user') {
+				var userObject = {
+					user: results.userEmail
+				}
+				userModel.moreDetails(userObject, userObject, userObject, 
+					wrapperFunctionForUser(responceCallback, results));
+			} else {
+				responceCallback(0, {
+					"id": results.id,
+					"name": results.name,
+					"short_name": results.shortname,
+					"user": results.userEmail 
+				});
+			}
 		}
 	});
-	*/
+}
 
-
+/**
+ * Функция обертка для дозаписи юзера в ответ
+ * @param  {Function} responceCallback
+ * @param  {Object} results 
+ * @return {Function} callback for userModel.moreDetails
+ */
+function wrapperFunctionForUser(responceCallback, results) {
+	return function(code, info) {
+				// предполагается, что code === 0, так как юзер должен быть
+				responceCallback(code, {
+					"id": results.id,
+					"name": results.name,
+					"short_name": results.shortname,
+					"user": info
+				});
+			}
 }
 
 module.exports.listPosts = function(dataObject, responceCallback) {

@@ -2,6 +2,7 @@
  * Проверяет наличие и наполненность указанных свойств в объекте
  * @param  {[Object]} dataObject     
  * @param  {[Array]} requriedFields 
+ * @return {Boolean}
  */
 module.exports.requireFields = function (dataObject, requriedFields) {
 	for (var i = 0; i < requriedFields.length; i++) {
@@ -11,6 +12,20 @@ module.exports.requireFields = function (dataObject, requriedFields) {
 	}
 	return true;
 };
+/**
+ * Проверяет подходит ли значение под возможные варинаты
+ * @param  {String} dataObject 
+ * @param  {Array} possibleValues 
+ * @return {Boolean}
+ */
+module.exports.possibleValues = function (dataObject, possibleValues) {
+	//если не определенная переменная
+	if (dataObject === undefined) return true;
+	for (var i = 0; i < possibleValues.length; i++) {
+		if (dataObject === possibleValues[i]) return true;
+	}
+	return false;
+}
 /**
  * Ошибки и их коды
  */
