@@ -105,7 +105,6 @@ module.exports.details = function(dataObject, responceCallback) {
 		}
 	});
 }
-//TODO убрать обертку
 /**
  * Функция обертка для дозаписи юзера в ответ
  * @param  {Function} responceCallback
