@@ -26,20 +26,26 @@ module.exports.create = function(dataObject, responceCallback) {
 				[dataObject.email], 
 				function(err, res) {
 					if (err) err = helper.mysqlError(err.errno);
+					else {
+						if (res.length === 0) err = error.notWrite;
+					}
 					if (err) callback(err, null);
 					else callback(null, res);
 				});
 		}
 	], function(err, res) {
 		if (err) responceCallback(err.code, err.message);
-		else responceCallback(0, {
-			"about": res[2][0].about,
-			"email": res[2][0].email,
-			"id": res[2][0].id,
-			"isAnonymous": !!(res[2][0].isAnonymous),
-			"name": res[2][0].name,
-			"username": res[2][0].username 
-		});	
+		else {
+			res = res[2][0];
+			responceCallback(0, {
+				"about": res.about,
+				"email": res.email,
+				"id": res.id,
+				"isAnonymous": !!(res.isAnonymous),
+				"name": res.name,
+				"username": res.username 
+			});	
+		}
 	});
 }
 
@@ -256,20 +262,21 @@ module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, 
 	function (err, results) {
 		if (err) responceCallback(err.code, err.message);
 		else {
+			results.userInfo = results.userInfo[0];
 			responceCallback(0, {
-			"about": results.userInfo[0].about,
-			"email": results.userInfo[0].email,
+			"about": results.userInfo.about,
+			"email": results.userInfo.email,
 			"followers": results.followers.map(function(elem) {
 						  return elem.followeeEmail;
 						}),
 			"following": results.following.map(function(elem) {
 						  return elem.followerEmail;
 						}),
-			"id": results.userInfo[0].id,
-			"isAnonymous": !!(results.userInfo[0].isAnonymous),
-			"name": results.userInfo[0].name,
+			"id": results.userInfo.id,
+			"isAnonymous": !!(results.userInfo.isAnonymous),
+			"name": results.userInfo.name,
 			"subscriptions": results.subscriptions,
-			"username": results.userInfo[0].username 
+			"username": results.userInfo.username 
 			});	
 		}
 	});

@@ -31,9 +31,13 @@ module.exports.errors = {
 		code: 1,
 		message: "Такой записи нет"
 	},
-	semanticError: {
+	semantic: {
 		code: 4,
 		message: "Ошибка в запросе"
+	},
+	notWrite: {
+		code: 1,
+		message: "Ошибка записи, почему-то не записалось(("
 	}
 };
 /**
@@ -47,7 +51,7 @@ module.exports.mysqlError = function (errCode) {
 			return this.errors.duplicateRecord;
 			break;
 		case 1064:
-			return this.errors.semanticError;
+			return this.errors.semantic;
 			break;
 		default:
 			return this.errors.unknown;

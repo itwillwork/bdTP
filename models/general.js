@@ -10,6 +10,13 @@ module.exports.clear = function (responceCallback) {
 					if (err) callback( helper.mysqlError(err.errno) , null);
 					else callback(null, res);
 				});
+		},
+		function(callback){
+			connection.db.query("TRUNCATE TABLE forum", 
+				function(err, res) {
+					if (err) callback( helper.mysqlError(err.errno) , null);
+					else callback(null, res);
+				});
 		}
 	],
 	function(err, results){
