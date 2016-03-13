@@ -53,8 +53,59 @@ module.exports.create =  function(dataObject, responceCallback) {
 }
 
 module.exports.details =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	connection.db.query('SELECT * FROM thread WHERE id = ?', 
+		[dataObject.thread], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			else {
+				if (res.length === 0) err = error.norecord;
+			}
+			if (err) responceCallback(err.code, err.message);
+			else {
+				//все ок и thread найден
+				//отбрасываем лишнее
+				res = res[0];
+				async.parallel({
+					user: function (callback) {
+						if (helper.isEntry('user', dataObject.related)) {
+							//нужно дальше искать информацию по юзеру
+							var userObject = {
+								user: res.userEmail
+							}
+							userModel.moreDetails(userObject, userObject, userObject, function(code, res){
+								callback(null, res);
+							});
+						} else {
+							//не нужно дальше искать информацию по юзеру
+							callback(null, res.userEmail);
+						}
+					},
+					forum: function (callback) {
+						//TODO доделать
+						callback(null, res.forumShortname);
+					}
+				}, function (err, results) {
+					if (err) responceCallback(err.code, err.message);
+					else {
+						responceCallback(0, {
+							"date": res.date,
+							"dislikes": res.dislikes,
+							"forum": results.forum,
+							"id": res.id,
+							"isClosed": res.isClosed,
+							"isDeleted": res.isDeleted,
+							"likes": res.likes,
+							"message": res.message,
+							"points": res.points,
+							"posts": res.posts,
+							"slug": res.slug,
+							"title": res.title,
+							"user": results.user
+						});
+					}
+				});
+			}
+		});
 }
 
 module.exports.list =  function(dataObject, responceCallback) {
@@ -124,9 +175,10 @@ module.exports.update =  function(dataObject, responceCallback) {
 		[dataObject.message, dataObject.slug, dataObject.thread], 
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
-			if (err) responceCallback(err.code, err.message);
-			//TODO выдать детали треда
-			responceCallback(0, dataObject);
+			if (err) responceCallback(err.code, err.message) 
+			else {
+				module.exports.details({thread: dataObject.thread}, responceCallback);	
+			}
 		});
 }
 

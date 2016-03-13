@@ -83,7 +83,7 @@ module.exports.details = function(dataObject, responceCallback) {
 					if (err) callback(err, null);
 					else callback(null, res);
 				});
-		}
+		},
 	], function(err, results) {
 		if (err) responceCallback(err.code, err.message);
 		else {
@@ -105,7 +105,7 @@ module.exports.details = function(dataObject, responceCallback) {
 		}
 	});
 }
-
+//TODO убрать обертку
 /**
  * Функция обертка для дозаписи юзера в ответ
  * @param  {Function} responceCallback

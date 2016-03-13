@@ -30,6 +30,22 @@ module.exports.possibleValues = function (dataObject, possibleValues) {
 	return false;
 }
 /**
+ * Проверяет содержится ли значение value в массиве dataArray
+ * @param  {String}  value     
+ * @param  {Array}  dataArray
+ * @return {Boolean}
+ */
+module.exports.isEntry = function (value, dataArray) {
+	//на тот случай если dataArray не окажется массивом
+	//преобразуем в массив
+	if (!(dataArray instanceof Array)) dataArray = [dataArray];
+	
+	for (var i = 0; i < dataArray.length; i++) {
+		if (value === dataArray[i]) return true;
+	}
+	return false;
+}
+/**
  * Ошибки и их коды
  */
 module.exports.errors = {
