@@ -100,18 +100,34 @@ module.exports.restore =  function(dataObject, responceCallback) {
 }
 
 module.exports.subscribe =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	connection.db.query('INSERT INTO subscribes (userEmail, threadID) values (?, ?);', 
+		[dataObject.user, dataObject.thread], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			responceCallback(0, dataObject);
+		});
 }
 
 module.exports.unsubscribe =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	connection.db.query(' DELETE FROM subscribes WHERE (userEmail = ?) AND (threadID = ?);', 
+		[dataObject.user, dataObject.thread], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			responceCallback(0, dataObject);
+		});
 }
 
 module.exports.update =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	connection.db.query('UPDATE thread SET message = ?, slug = ? WHERE id = ?;', 
+		[dataObject.message, dataObject.slug, dataObject.thread], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			//TODO выдать детали треда
+			responceCallback(0, dataObject);
+		});
 }
 
 module.exports.vote =  function(dataObject, responceCallback) {
