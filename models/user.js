@@ -60,7 +60,7 @@ module.exports.details = function(dataObject, responceCallback) {
 		}
 	], function(err, res) {
 		if (err) responceCallback(err.code, err.message);
-		else module.exports.moreDetails(res[1][0], {user: res[1][0].email}, {user: res[1][0].email}, responceCallback);
+		else module.exports.moreDetails(res[1][0], dataObject, dataObject, responceCallback);
 	});
 }
 
