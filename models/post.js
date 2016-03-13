@@ -42,8 +42,16 @@ module.exports.restore =  function(dataObject, responceCallback) {
 }
 
 module.exports.update =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	connection.db.query('UPDATE post SET message = ? WHERE id = ?;', 
+		[dataObject.message, dataObject.post], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message) 
+			else {
+				//TODO доделать вывод details
+				responceCallback(0, "OK");	
+			}
+		});
 }
 
 module.exports.vote =  function(dataObject, responceCallback) {
