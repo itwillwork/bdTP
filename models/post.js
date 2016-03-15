@@ -14,13 +14,52 @@ module.exports.create =  function(dataObject, responceCallback) {
 			if(!dataObject.hasOwnProperty('isEdited')) dataObject.isEdited = false;
 			if(!dataObject.hasOwnProperty('isHighlighted')) dataObject.isHighlighted = false;
 			if(!dataObject.hasOwnProperty('isDeleted')) dataObject.isDeleted = false;
-			dataObject.materPath = null;
-			connection.db.query("INSERT INTO post (isApproved, isDeleted, isEdited, isHighlighted, isSpam, message, parent, threadId, date, forumShortname, userEmail, materPath) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", 
-				[dataObject.isApproved, dataObject.isDeleted, dataObject.isEdited, dataObject.isHighlighted, dataObject.isSpam, dataObject.message, dataObject.parent,
-				dataObject.thread, dataObject.date, dataObject.forum, dataObject.user, dataObject.materPath], 
+			/**
+			 * Примерный алгоритм Material Path
+			 * если нет предка, надо найти максимальный
+			 * найти math path предка
+			 * если предок есть, надо найти максимум по последнему уровню вложенности
+			 */
+			connection.db.query("SELECT materPath FROM post WHERE id = ?;", 
+				[dataObject.parent],
 				function(err, res) {
 					if (err) callback( helper.mysqlError(err.errno) , null);
-					else callback(null, res);
+					else {
+						//res === null, если dataObject.parent null
+						var parentMathPath
+						if (res.length === 0) {
+							parentMathPath = '';
+						} else {
+							parentMathPath = res[0].materPath;
+						}
+						connection.db.query('SELECT MAX(materPath) AS max FROM post WHERE (materPath LIKE ?) AND (threadId = ?) ORDER BY materPath', 
+							[parentMathPath + '__', dataObject.thread], 
+							function(err, res) {
+								if (err) callback( helper.mysqlError(err.errno) , null);
+								else {
+									var newMaterPath;
+									if (res[0].max === null) {
+										//предков этого parenta нет, поэтому создаем новый уровень вложенности
+										newMaterPath = parentMathPath + '00';
+									} else {
+										//2 последних символа строки на один уровень вложенности
+										var tmp = res[0].max.slice(-2);
+										tmp = (parseInt(tmp, 36) + 1).toString(36);
+										while (tmp.length < 2) tmp = '0' + tmp;
+										//больше чем 2 последних символа строки
+										if (tmp.length > 2) callback( error.notMemory, null);
+										newMaterPath = parentMathPath + tmp;
+									}
+									connection.db.query("INSERT INTO post (isApproved, isDeleted, isEdited, isHighlighted, isSpam, message, parent, threadId, date, forumShortname, userEmail, materPath) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", 
+										[dataObject.isApproved, dataObject.isDeleted, dataObject.isEdited, dataObject.isHighlighted, dataObject.isSpam, dataObject.message, dataObject.parent,
+										dataObject.thread, dataObject.date, dataObject.forum, dataObject.user, newMaterPath], 
+										function(err, res) {
+											if (err) callback( helper.mysqlError(err.errno) , null);
+											else callback(null, res);
+										});
+								}
+							});
+					}
 				});
 		},
 		function (callback) {

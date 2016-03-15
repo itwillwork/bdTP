@@ -72,6 +72,10 @@ module.exports.errors = {
 	notWrite: {
 		code: 1,
 		message: "Ошибка записи, почему-то не записалось(("
+	},
+	notMemory: {
+		code: 4,
+		message: "Алфавита не хватает для записи постов в этот уровень"
 	}
 };
 /**
