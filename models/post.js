@@ -20,8 +20,8 @@ module.exports.create =  function(dataObject, responceCallback) {
 			 * найти math path предка
 			 * если предок есть, надо найти максимум по последнему уровню вложенности
 			 */
-			connection.db.query("SELECT materPath FROM post WHERE id = ?;", 
-				[dataObject.parent],
+			connection.db.query("SELECT materPath FROM post WHERE (id = ?) AND (threadId = ?);", 
+				[dataObject.parent, dataObject.thread],
 				function(err, res) {
 					if (err) callback( helper.mysqlError(err.errno) , null);
 					else {
