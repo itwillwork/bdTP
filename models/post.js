@@ -180,10 +180,55 @@ module.exports.details =  function(dataObject, responceCallback) {
 			}
 		});
 }
+function getSQLforList(dataObject) {
+	//проверить поля
+	sql = "SELECT date, dislikes, forumShortname, id, isApproved, isDeleted, isEdited, isHighlighted, isSpam, likes, message, parent, points, threadId, userEmail FROM post "
+	
+	if (dataObject.forum) sql += 'WHERE (forumShortname = "' + dataObject.forum + '") ';
+	if (dataObject.thread) sql += 'WHERE (threadId = "' + dataObject.thread + '") ';
 
+	if (dataObject.since) {
+		sql += ' AND (date >= "' + dataObject.since + '") ';
+	}
+	
+	if (dataObject.order !== 'asc') {
+		dataObject.order = 'desc';
+	}
+	sql += ' ORDER BY date ' + dataObject.order;
+
+	if (dataObject.limit) {
+		sql += ' LIMIT ' + dataObject.limit;
+	}
+	return sql;
+}
 module.exports.list =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	connection.db.query(getSQLforList(dataObject), [], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message) 
+			else {
+				res = res.map(function(node){
+					return {
+						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
+						"dislikes": node.dislikes,
+						"forum": node.forumShortname,
+						"id": node.id,
+						"isApproved": !!node.isApproved,
+						"isDeleted": !!node.isDeleted,
+						"isEdited": !!node.isEdited,
+						"isHighlighted": !!node.isHighlighted,
+						"isSpam": !!node.isSpam,
+						"likes": node.likes,
+						"message": node.message,
+						"parent": node.parent,
+						"points": node.points,
+						"thread": node.threadId,
+						"user": node.userEmail
+					}
+				});
+				responceCallback(0, res);
+			}
+		});
 }
 
 module.exports.remove =  function(dataObject, responceCallback) {
