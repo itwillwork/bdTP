@@ -1,5 +1,6 @@
 var connection = require('./../connection'),
 	helper = require('./../helper'),
+	moment = require('moment'),
 	async = require('async'),
 	error = helper.errors;
 
@@ -319,8 +320,56 @@ module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, 
 		}
 	});
 }
+/**
+ * составитель запросов для user.ListPosts
+ */
+function getSQLforListPosts(dataObject) {
+	sql = "SELECT date, dislikes, forumShortname, post.id AS postId, isApproved, isDeleted, isEdited, isHighlighted, isSpam, likes, message, parent, points, threadId, email FROM user JOIN post ON userEmail = email "
+	sql += 'WHERE (email = "' + dataObject.user + '") ';
 
+	if (dataObject.since) {
+		sql += ' AND (date >= "' + dataObject.since + '") ';
+	}
+
+	if (dataObject.order !== 'asc') {
+		dataObject.order = 'desc';
+	}
+	sql += ' ORDER BY date ' + dataObject.order;
+
+	if (dataObject.limit) {
+		sql += ' LIMIT ' + dataObject.limit;
+	}
+	return sql;
+}
 module.exports.listPosts = function(dataObject, responceCallback) {
-	//TODO добавить метод
-	responceCallback(0, "Метод пока не реализован");
+	connection.db.query(getSQLforListPosts(dataObject), [], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno) 
+			else {
+				if (res.length === 0) err = error.norecord;
+			}
+			if (err) responceCallback(err.code, err.message);
+			else {
+				res = res.map(function(node){
+					return {
+						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
+						"dislikes": node.dislikes,
+						"forum": node.forumShortname,
+						"id": node.postId,
+						"isApproved": !!node.isApproved,
+						"isDeleted": !!node.isDeleted,
+						"isEdited": !!node.isEdited,
+						"isHighlighted": !!node.isHighlighted,
+						"isSpam": !!node.isSpam,
+						"likes": node.likes,
+						"message": node.message,
+						"parent": node.parent,
+						"points": node.points,
+						"thread": node.threadId,
+						"user": node.userEmail
+					}
+				});
+				responceCallback(0, res);
+			};
+		});
 }
