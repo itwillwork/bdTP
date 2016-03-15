@@ -19,24 +19,29 @@ module.exports.create =  function(dataObject, responceCallback) {
 			 * если нет предка, надо найти максимальный
 			 * найти math path предка
 			 * если предок есть, надо найти максимум по последнему уровню вложенности
+			 *
+			 * для MaterPath использую 36 систему счисления и 2 позиции в строке для уровня вложенности
+			 * 
 			 */
+			//получаем MaterPath родителя
 			connection.db.query("SELECT materPath FROM post WHERE (id = ?) AND (threadId = ?);", 
 				[dataObject.parent, dataObject.thread],
 				function(err, res) {
 					if (err) callback( helper.mysqlError(err.errno) , null);
 					else {
-						//res === null, если dataObject.parent null
 						var parentMathPath
 						if (res.length === 0) {
 							parentMathPath = '';
 						} else {
 							parentMathPath = res[0].materPath;
 						}
+						//максимальный номер ребенка по маске из родителя
 						connection.db.query('SELECT MAX(materPath) AS max FROM post WHERE (materPath LIKE ?) AND (threadId = ?) ORDER BY materPath', 
 							[parentMathPath + '__', dataObject.thread], 
 							function(err, res) {
 								if (err) callback( helper.mysqlError(err.errno) , null);
 								else {
+									//формирование следующего нового MaterPath
 									var newMaterPath;
 									if (res[0].max === null) {
 										//предков этого parenta нет, поэтому создаем новый уровень вложенности
@@ -50,6 +55,7 @@ module.exports.create =  function(dataObject, responceCallback) {
 										if (tmp.length > 2) callback( error.notMemory, null);
 										newMaterPath = parentMathPath + tmp;
 									}
+									//записываем все что получилось
 									connection.db.query("INSERT INTO post (isApproved, isDeleted, isEdited, isHighlighted, isSpam, message, parent, threadId, date, forumShortname, userEmail, materPath) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", 
 										[dataObject.isApproved, dataObject.isDeleted, dataObject.isEdited, dataObject.isHighlighted, dataObject.isSpam, dataObject.message, dataObject.parent,
 										dataObject.thread, dataObject.date, dataObject.forum, dataObject.user, newMaterPath], 
@@ -159,13 +165,75 @@ module.exports.list =  function(dataObject, responceCallback) {
 }
 
 module.exports.remove =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	connection.db.query('SELECT threadId FROM post WHERE id = ?;', 
+		[dataObject.post], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message) 
+			else {
+				async.parallel([
+					function (callback) {
+						connection.db.query('UPDATE post SET isDeleted = true WHERE id = ?;', 
+							[dataObject.post], 
+							function(err, res) {
+								if (err) err = helper.mysqlError(err.errno);
+								if (err) callback(err, null) 
+								else callback (null, res);
+							});
+					}, 
+					function (callback) {
+						connection.db.query('UPDATE thread SET posts = posts - 1 WHERE id = ?;', 
+							[res[0].threadId], 
+							function(err, res) {
+								if (err) err = helper.mysqlError(err.errno);
+								if (err) callback(err, null) 
+								else callback (null, res);
+							});
+					}
+				], function (err, res) {
+					if (err) responceCallback(err.code, err.message);
+					else responceCallback(0, {
+							"post": dataObject.post
+						});
+				});
+			}
+		});	
 }
 
 module.exports.restore =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	connection.db.query('SELECT threadId FROM post WHERE id = ?;', 
+		[dataObject.post], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message) 
+			else {
+				async.parallel([
+					function (callback) {
+						connection.db.query('UPDATE post SET isDeleted = false WHERE id = ?;', 
+							[dataObject.post], 
+							function(err, res) {
+								if (err) err = helper.mysqlError(err.errno);
+								if (err) callback(err, null) 
+								else callback (null, res);
+							});
+					}, 
+					function (callback) {
+						connection.db.query('UPDATE thread SET posts = posts + 1 WHERE id = ?;', 
+							[res[0].threadId], 
+							function(err, res) {
+								if (err) err = helper.mysqlError(err.errno);
+								if (err) callback(err, null) 
+								else callback (null, res);
+							});
+					}
+				], function (err, res) {
+					if (err) responceCallback(err.code, err.message);
+					else responceCallback(0, {
+							"post": dataObject.post
+						});
+				});
+			}
+		});	
 }
 
 module.exports.update =  function(dataObject, responceCallback) {
