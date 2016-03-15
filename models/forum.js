@@ -137,8 +137,8 @@ module.exports.listThreads = function(dataObject, responceCallback) {
  * составитель запросов для listUsers
  */
 function getSQLForListUsers(wherefrom) {
-	//TODO сросить насчет since_id что это такое и зачем
 	var sql = 'SELECT userEmail AS user FROM forum';
+	sql += ' WHERE id >= ' + wherefrom.since_id;
 	sql += ' GROUP BY user ';
 	if (wherefrom.order !== 'asc') {
 		wherefrom.order = 'desc';

@@ -238,7 +238,6 @@ module.exports.updateProfile = function(dataObject, responceCallback) {
  * составитель запросов для user.listFollowers и user.listFollowing
  */
 function getSQLForFollowers (target, wherefore, wherefrom) {
-	//TODO сросить насчет since_id что это такое и зачем
 	var sql = 'SELECT ' + target + ' FROM followers ';
 	if (wherefrom.order !== 'asc') {
 		wherefrom.order = 'desc';

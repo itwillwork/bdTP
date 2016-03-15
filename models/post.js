@@ -3,6 +3,8 @@ var connection = require('./../connection'),
 	async = require('async'),
 	moment = require('moment'),
 	userModel = require('./user'),
+	threadModel = require('./thread'),
+	forumModel = require('./forum'),
 	error = helper.errors;
 
 module.exports.create =  function(dataObject, responceCallback) {
@@ -126,12 +128,32 @@ module.exports.details =  function(dataObject, responceCallback) {
 						}
 					},
 					forum: function (callback) {
-						//TODO доделать
-						callback(null, res.forumShortname);
+						if (helper.isEntry('forum', dataObject.related)) {
+							//нужно дальше искать информацию по форуму
+							var forumObject = {
+								forum: res.forumShortname
+							}
+							forumModel.details(forumObject, function(code, res){
+								callback(null, res);
+							});
+						} else {
+							//не нужно дальше искать информацию по форуму
+							callback(null, res.forumShortname);
+						}
 					},
 					thread: function (callback) {
-						//TODO доделать
-						callback(null, res.threadId);
+						if (helper.isEntry('thread', dataObject.related)) {
+							//нужно дальше искать информацию по треду
+							var threadObject = {
+								thread: res.threadId
+							}
+							threadModel.details(threadObject, function(code, res){
+								callback(null, res);
+							});
+						} else {
+							//не нужно дальше искать информацию по треду
+							callback(null, res.threadId);
+						}
 					}
 				}, function (err, results) {
 					if (err) responceCallback(err.code, err.message);
