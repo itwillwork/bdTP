@@ -2,7 +2,8 @@ var connection = require('./../connection'),
 	helper = require('./../helper'),
 	async = require('async'),
 	moment = require('moment'),
-	userModel = require('./user.js'),
+	userModel = require('./user'),
+	forumModel = require('./forum'),
 	error = helper.errors;
 
 module.exports.close =  function(dataObject, responceCallback) {
@@ -82,8 +83,18 @@ module.exports.details =  function(dataObject, responceCallback) {
 						}
 					},
 					forum: function (callback) {
-						//TODO доделать
-						callback(null, res.forumShortname);
+						if (helper.isEntry('forum', dataObject.related)) {
+							//нужно дальше искать информацию по форуму
+							var forumObject = {
+								forum: res.forumShortname
+							}
+							forumModel.details(forumObject, function(code, res){
+								callback(null, res);
+							});
+						} else {
+							//не нужно дальше искать информацию по форуму
+							callback(null, res.forumShortname);
+						}
 					}
 				}, function (err, results) {
 					if (err) responceCallback(err.code, err.message);
@@ -130,25 +141,43 @@ module.exports.open =  function(dataObject, responceCallback) {
 }
 
 module.exports.remove =  function(dataObject, responceCallback) {
-	connection.db.query('UPDATE thread SET isDeleted = true WHERE id = ?', 
-		[dataObject.thread], 
-		function(err, res) {
-			if (err) err = helper.mysqlError(err.errno);
-			if (err) responceCallback(err.code, err.message);
-			responceCallback(0, dataObject);
-		});
-	//TODO дописать изменение постов
+	connection.db.query('UPDATE post SET isDeleted = true WHERE threadId = ?', 
+				[dataObject.thread], 
+				function(err, res) {
+					if (err) err = helper.mysqlError(err.errno);
+					if (err) responceCallback(err.code, err.message);
+					else {
+						connection.db.query('UPDATE thread SET isDeleted = true, posts = posts - ? WHERE id = ?', 
+							[res.changedRows, dataObject.thread], 
+							function(err, res) {
+								if (err) err = helper.mysqlError(err.errno);
+								if (err) responceCallback(err.code, err.message);
+								else responceCallback(0, {
+									"thread": dataObject.thread
+								});
+							});
+					}
+				});
 }
 
 module.exports.restore =  function(dataObject, responceCallback) {
-	connection.db.query('UPDATE thread SET isDeleted = false WHERE id = ?', 
-		[dataObject.thread], 
-		function(err, res) {
-			if (err) err = helper.mysqlError(err.errno);
-			if (err) responceCallback(err.code, err.message);
-			responceCallback(0, dataObject);
-		});
-	//TODO дописать изменение постов
+	connection.db.query('UPDATE post SET isDeleted = false WHERE threadId = ?', 
+				[dataObject.thread], 
+				function(err, res) {
+					if (err) err = helper.mysqlError(err.errno);
+					if (err) responceCallback(err.code, err.message);
+					else {
+						connection.db.query('UPDATE thread SET isDeleted = false, posts = posts + ? WHERE id = ?', 
+							[res.changedRows, dataObject.thread], 
+							function(err, res) {
+								if (err) err = helper.mysqlError(err.errno);
+								if (err) responceCallback(err.code, err.message);
+								else responceCallback(0, {
+									"thread": dataObject.thread
+								});
+							});
+					}
+				});
 }
 
 module.exports.subscribe =  function(dataObject, responceCallback) {
