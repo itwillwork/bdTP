@@ -1,6 +1,7 @@
 var connection = require('./../connection'),
 	helper = require('./../helper'),
 	async = require('async'),
+	moment = require('moment'),
 	userModel = require('./user.js'),
 	error = helper.errors;
 
@@ -38,7 +39,7 @@ module.exports.create =  function(dataObject, responceCallback) {
 		if (err) responceCallback(err.code, err.message);
 		else {
 			responceCallback(0, {
-				'date': dataObject.date,
+				'date': moment(dataObject.date).format("YYYY-MM-DD HH:mm:ss"),
 				'forum': dataObject.forum,
 				'id': results[1].insertId,
 				'isClosed': dataObject.isClosed,
@@ -88,7 +89,7 @@ module.exports.details =  function(dataObject, responceCallback) {
 					if (err) responceCallback(err.code, err.message);
 					else {
 						responceCallback(0, {
-							"date": res.date,
+							"date": moment(res.date).format("YYYY-MM-DD HH:mm:ss"),
 							"dislikes": res.dislikes,
 							"forum": results.forum,
 							"id": res.id,
