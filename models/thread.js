@@ -43,8 +43,8 @@ module.exports.create =  function(dataObject, responceCallback) {
 				'date': moment(dataObject.date).format("YYYY-MM-DD HH:mm:ss"),
 				'forum': dataObject.forum,
 				'id': results[1].insertId,
-				'isClosed': dataObject.isClosed,
-				'isDeleted': dataObject.isDeleted,
+				'isClosed': !!dataObject.isClosed,
+				'isDeleted': !!dataObject.isDeleted,
 				'message': dataObject.message,
 				'slug': dataObject.slug,
 				'title': dataObject.title,
@@ -104,8 +104,8 @@ module.exports.details =  function(dataObject, responceCallback) {
 							"dislikes": res.dislikes,
 							"forum": results.forum,
 							"id": res.id,
-							"isClosed": res.isClosed,
-							"isDeleted": res.isDeleted,
+							"isClosed": !!res.isClosed,
+							"isDeleted": !!res.isDeleted,
 							"likes": res.likes,
 							"message": res.message,
 							"points": res.points,
@@ -121,8 +121,46 @@ module.exports.details =  function(dataObject, responceCallback) {
 }
 
 module.exports.list =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	var sql = ' SELECT * FROM thread '
+
+	if (dataObject.user) sql += ' WHERE (thread.userEmail = "' + dataObject.user + '") ';
+	if (dataObject.forum) sql += ' WHERE (thread.forumShortname = "' + dataObject.forum + '") ';
+
+	if (dataObject.since) sql += ' AND (thread.date >= "' + dataObject.since + '") ';
+
+	if (dataObject.order !== 'asc') {
+		dataObject.order = 'desc';
+	}
+	sql += ' ORDER BY thread.date ' + dataObject.order;
+	
+	if (dataObject.limit) {
+		sql += ' LIMIT ' + dataObject.limit;
+	}
+	connection.db.query(sql, [], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			else {
+				res = res.map(function(node) {
+					return {
+						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
+						"dislikes": node.dislikes,
+						"forum": node.forumShortname,
+						"id": node.id,
+						"isClosed": !!node.isClosed,
+						"isDeleted": !!node.isDeleted,
+						"likes": node.likes,
+						"message": node.message,
+						"points": node.points,
+						"posts": node.posts,
+						"slug": node.slug,
+						"title": node.title,
+						"user": node.user
+					}
+				});
+				responceCallback(0, res);
+			}
+		});
 }
 
 module.exports.listPosts =  function(dataObject, responceCallback) {

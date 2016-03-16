@@ -127,7 +127,7 @@ function wrapperFunctionForDetails(responceCallback, results) {
 }
 
 function getSQLforListPosts(dataObject) {
-	sql = ' SELECT id FROM post ';
+	var sql = ' SELECT id FROM post ';
 	sql += ' WHERE (post.forumShortname = "' + dataObject.forum + '") ';
 	if (dataObject.since) sql += ' AND (post.date >= "' + dataObject.since + '") ';
 	if (dataObject.order !== 'asc') {
@@ -165,7 +165,7 @@ module.exports.listPosts = function(dataObject, responceCallback) {
 }
 
 function getSQLforlistThreads(dataObject) {
-	sql = ' SELECT id FROM thread ';
+	var sql = ' SELECT id FROM thread ';
 	sql += ' WHERE (thread.forumShortname = "' + dataObject.forum + '") ';
 	if (dataObject.since) sql += ' AND (thread.date >= "' + dataObject.since + '") ';
 	if (dataObject.order !== 'asc') {
