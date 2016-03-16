@@ -126,17 +126,7 @@ function wrapperFunctionForDetails(responceCallback, results) {
 			}
 }
 
-function getSQLforLostPosts(dataObject) {
-	/**
-	 * SELECT * FROM post 
-	 * JOIN thread ON threadId = thread.id
-	 * JOIN forum ON shortname = forumShortname
-	 * JOIN user ON userEmail = email
-	 * WHERE (forumShortname = forum) AND (date >= since)
-	 * ORDER BY desc
-	 * LIMIT 12
-	 */
-	
+function getSQLforListPosts(dataObject) {
 	sql = ' SELECT id FROM post ';
 	sql += ' WHERE (post.forumShortname = "' + dataObject.forum + '") ';
 	if (dataObject.since) sql += ' AND (post.date >= "' + dataObject.since + '") ';
@@ -151,7 +141,7 @@ function getSQLforLostPosts(dataObject) {
 }
 
 module.exports.listPosts = function(dataObject, responceCallback) {
-	connection.db.query(getSQLforLostPosts(dataObject), [], 
+	connection.db.query(getSQLforListPosts(dataObject), [], 
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -174,9 +164,42 @@ module.exports.listPosts = function(dataObject, responceCallback) {
 		});
 }
 
+function getSQLforlistThreads(dataObject) {
+	sql = ' SELECT id FROM thread ';
+	sql += ' WHERE (thread.forumShortname = "' + dataObject.forum + '") ';
+	if (dataObject.since) sql += ' AND (thread.date >= "' + dataObject.since + '") ';
+	if (dataObject.order !== 'asc') {
+		dataObject.order = 'desc';
+	}
+	sql += ' ORDER BY thread.date ' + dataObject.order;
+	if (dataObject.limit) {
+		sql += ' LIMIT ' + dataObject.limit;
+	}
+	return sql;
+}
+
 module.exports.listThreads = function(dataObject, responceCallback) {
-	//TODO добавить метод
-	responceCallback(0, "Метод пока не реализован");
+	connection.db.query(getSQLforlistThreads(dataObject), [], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			else {
+				res = res.map(function(node){
+					return function(callback) {
+						threadModel.details({
+							thread: node.id,
+							related: dataObject.related
+						}, function(code, res) { callback(null, res); });
+					}
+				});
+				async.parallel(res, function (err, res) {
+					if (err) responceCallback(err.code, err.message);
+					else {
+						responceCallback(0, res);
+					}
+				});
+			}
+		});
 }
 
 /**
