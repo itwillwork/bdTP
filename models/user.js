@@ -5,9 +5,12 @@ var connection = require('./../connection'),
 	error = helper.errors;
 
 module.exports.create = function(dataObject, responceCallback) {
+	if (!dataObject.username) dataObject.username = '';
+	if (!dataObject.about) dataObject.about = '';
+	if (!dataObject.name) dataObject.name = '';
 	async.series([
 		function(callback) {
-			if (!helper.requireFields(dataObject, ['username', 'about', 'name', 'email'])) {
+			if (!helper.requireFields(dataObject, ['email'])) {
 				callback(error.requireFields, null);
 			} else {
 				callback(null, null);
@@ -249,14 +252,18 @@ function getSQLForFollowers (target, wherefore, wherefrom) {
 	if (wherefrom.order !== 'asc') {
 		wherefrom.order = 'desc';
 	}
+	if (wherefrom.since_id) {
+		sql += '  JOIN user ON followers.' + target + ' = user.email ';
+	}
 	sql += ' WHERE ' + wherefore + ' = ? ';
 	if (wherefrom.since_id) {
-		sql += ' AND id >= ' + wherefrom.since_id
+		sql += ' AND user.id >= ' + wherefrom.since_id
 	}
 	sql += ' ORDER BY ' + target + ' ' + wherefrom.order;
 	if (wherefrom.limit) {
 		sql += ' LIMIT ' + wherefrom.limit;
 	}
+	console.log(sql);
 	return sql;
 } 
 
@@ -268,7 +275,7 @@ module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, 
 				function(err, res) {
 					if (err) err = helper.mysqlError(err.errno) 
 					else {
-						if (res.length === 0) err = error.norecord;
+						if (res.length === 0) res = null;
 					}
 					if (err) callback(err, null);
 					else callback(null, res);
@@ -305,24 +312,40 @@ module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, 
 	function (err, results) {
 		if (err) responceCallback(err.code, err.message);
 		else {
-			results.userInfo = results.userInfo[0];
-			responceCallback(0, {
-			"about": results.userInfo.about,
-			"email": results.userInfo.email,
-			"followers": results.followers.map(function(elem) {
-						  return elem.followeeEmail;
-						}),
-			"following": results.following.map(function(elem) {
-						  return elem.followerEmail;
-						}),
-			"id": results.userInfo.id,
-			"isAnonymous": !!(results.userInfo.isAnonymous),
-			"name": results.userInfo.name,
-			"subscriptions": results.subscriptions.map(function(elem) {
-						  return elem.threadId;
-						}),
-			"username": results.userInfo.username 
-			});	
+			if (results.userInfo)
+			{
+				results.userInfo = results.userInfo[0];
+				responceCallback(0, {
+					"about": results.userInfo.about || null,
+					"email": results.userInfo.email,
+					"following": results.followers.map(function(elem) {
+								  return elem.followeeEmail;
+								}),
+					"followers": results.following.map(function(elem) {
+								  return elem.followerEmail;
+								}) ,
+					"id": results.userInfo.id,
+					"isAnonymous": !!(results.userInfo.isAnonymous) ,
+					"name": results.userInfo.name || null,
+					"subscriptions": results.subscriptions.map(function(elem) {
+								  return elem.threadId;
+								}) ,
+					"username": results.userInfo.username || null
+					});	
+			} else {
+				responceCallback(0, {
+					"about": null,
+					"email": dataObject.user,
+					"followers": [],
+					"following": [],
+					"id": null,
+					"isAnonymous": null,
+					"name": null,
+					"subscriptions": [],
+					"username": null 
+					});	
+			}
+			
 		}
 	});
 }
@@ -369,10 +392,10 @@ module.exports.listPosts = function(dataObject, responceCallback) {
 						"isSpam": !!node.isSpam,
 						"likes": node.likes,
 						"message": node.message,
-						"parent": node.parent,
+						"parent": +node.parent || (node.parent !== '0' ? null: 0),
 						"points": node.points,
 						"thread": node.threadId,
-						"user": node.userEmail
+						"user": node.email
 					}
 				});
 				responceCallback(0, res);

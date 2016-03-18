@@ -55,6 +55,17 @@ module.exports.create =  function(dataObject, responceCallback) {
 }
 
 module.exports.details =  function(dataObject, responceCallback) {
+	if (!dataObject.related) dataObject.related = [];
+	if (!helper.requireFields(dataObject, ['thread'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
+	}
+	//responceCallback(0, helper.possibleValuesForVarieble(dataObject.related, ['user', 'forum']));
+	//return;
+	if (!helper.possibleValuesForVarieble(dataObject.related, ['user', 'forum'])) {
+		responceCallback(error.semantic.code, error.semantic.message);
+		return;
+	}
 	connection.db.query('SELECT * FROM thread WHERE id = ?', 
 		[dataObject.thread], 
 		function(err, res) {
@@ -163,9 +174,102 @@ module.exports.list =  function(dataObject, responceCallback) {
 		});
 }
 
+function descTreatment(res) {
+	var leftFlag = 0,
+		rightFlag = 0;
+	for (var i = 0; i < res.length; i++) {
+
+		if (res[i].materPath.length === 2) {
+			//console.log(res[i].materPath);
+			rightFlag = i;
+			if ((rightFlag - leftFlag) > 2) {
+				var i, j, buf;
+				    for (i = leftFlag, j = rightFlag; i < j; ++i, --j ) 
+				    {
+				        buf = res[i];
+				        res[i] = res[j];
+				        res[j] = buf;
+				    }
+			}
+			leftFlag = rightFlag;
+		}
+		//console.log(leftFlag, rightFlag);
+
+	}
+}
+
 module.exports.listPosts =  function(dataObject, responceCallback) {
-	//TODO реализовать
-	responceCallback(0, "метод еще не реализован")
+	//собирание запроса
+	if(!dataObject.hasOwnProperty('sort')) dataObject.sort = 'flat';
+	
+	var sql = ' SELECT * FROM post '
+
+	sql += ' WHERE (threadId = "' + dataObject.thread + '") ';
+	
+	if (dataObject.since) sql += ' AND (date >= "' + dataObject.since + '") ';
+
+	if (dataObject.order !== 'asc') {
+		dataObject.order = 'desc';
+	}
+	
+	switch (dataObject.sort) {
+		case 'flat': {
+				sql += ' ORDER BY date ' + dataObject.order;
+				if (dataObject.limit) {
+					sql += ' LIMIT ' + dataObject.limit;
+				}
+			}
+			break;
+		case 'tree': {
+				sql += ' ORDER BY materPath ' + dataObject.order;
+				if (dataObject.limit) {
+					sql += ' LIMIT ' + dataObject.limit;
+				}
+			} 
+			break;
+		case 'parent_tree': {
+				var tmp = String( dataObject.limit);
+				while (tmp.length < 2) tmp = '0' + tmp;
+				sql += ' AND (materPath < "' + tmp + '") ';
+				sql += ' ORDER BY materPath ' + dataObject.order;
+			} 
+			break;
+	}
+
+	//запрос
+	connection.db.query(sql, [], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			else {
+				//жуткий костыль
+				if (((dataObject.sort === 'tree') || (dataObject.sort === 'parent_tree')) && (dataObject.order === 'desc')) {
+					descTreatment(res);	
+				}
+				
+				res = res.map(function(node) {
+					return {
+						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
+						"dislikes": node.dislikes,
+						"forum": node.forumShortname,
+						"id": node.id,
+						"isApproved": !!node.isApproved,
+						"isDeleted": !!node.isDeleted,
+						"isEdited": !!node.isEdited,
+						"isHighlighted": !!node.isHighlighted,
+						"isSpam": !!node.isSpam,
+						"likes": node.likes,
+						"message": node.message,
+						"parent": +node.parent || (node.parent !== '0' ? null: 0),
+						"points": node.points,
+						"thread": node.thread,
+						"user": node.user,
+						"materPath": node.materPath
+					}
+				});
+				responceCallback(0, res);
+			}
+		});
 }
 
 module.exports.open =  function(dataObject, responceCallback) {

@@ -5,6 +5,7 @@ var express = require('express'),
 
 router.post('/create', function(req, res) {
     model.create(req.body, responceCallback(res));
+    responceCallback(4, "sdfsdf");
 });
 
 router.get('/details/', function(req, res) {

@@ -6,9 +6,22 @@
  */
 module.exports.requireFields = function (dataObject, requriedFields) {
 	for (var i = 0; i < requriedFields.length; i++) {
-		if (!dataObject[ requriedFields[i] ]) {
+		if ((dataObject.hasOwnProperty(requriedFields[i])) && 
+			(dataObject[requriedFields[i]] === null)) {
 			return false;
 		}
+	}
+	return true;
+};
+
+module.exports.possibleValuesForVarieble = function (dataObject, requriedFields) {
+	if (!(dataObject instanceof Array)) dataObject = [dataObject];
+	for (var j = 0; j < dataObject.length; j++) {
+		var flag = false;
+		for (var i = 0; i < requriedFields.length; i++) {
+			if (requriedFields[i]===dataObject[j]) flag = true;
+		}
+		if (flag !== true) return false;
 	}
 	return true;
 };
@@ -66,7 +79,7 @@ module.exports.errors = {
 		message: "Такой записи в таблице нет"
 	},
 	semantic: {
-		code: 4,
+		code: 3,
 		message: "Семантическая ошибка запроса"
 	},
 	notWrite: {
@@ -95,7 +108,7 @@ module.exports.mysqlError = function (errCode) {
 			return this.errors.semantic;
 			break;
 		default:
-			//console.log(errCode);
+			console.log(errCode);
 			return this.errors.unknown;
 			break;
 	}

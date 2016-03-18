@@ -8,14 +8,24 @@ var connection = require('./../connection'),
 	error = helper.errors;
 
 module.exports.create =  function(dataObject, responceCallback) {
+	if(!dataObject.hasOwnProperty('parent')) dataObject.parent = ''; 
+	else if (dataObject.parent === null) dataObject.parent = '';
+	if(!dataObject.hasOwnProperty('isSpam')) dataObject.isSpam = false;
+	if(!dataObject.hasOwnProperty('isApproved')) dataObject.isApproved = false;
+	if(!dataObject.hasOwnProperty('isEdited')) dataObject.isEdited = false;
+	if(!dataObject.hasOwnProperty('isHighlighted')) dataObject.isHighlighted = false;
+	if(!dataObject.hasOwnProperty('isDeleted')) dataObject.isDeleted = false;
+	if (dataObject.parent < 0) {
+		responceCallback(error.semantic.code, error.semantic.message);
+		return;
+	}
+	if (!helper.requireFields(dataObject, ['date', 'thread', 'message', 'user', 'forum'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
+	}
 	async.parallel([
 		function (callback) {
-			if(!dataObject.hasOwnProperty('parent')) dataObject.parent = null;
-			if(!dataObject.hasOwnProperty('isSpam')) dataObject.isSpam = false;
-			if(!dataObject.hasOwnProperty('isApproved')) dataObject.isApproved = false;
-			if(!dataObject.hasOwnProperty('isEdited')) dataObject.isEdited = false;
-			if(!dataObject.hasOwnProperty('isHighlighted')) dataObject.isHighlighted = false;
-			if(!dataObject.hasOwnProperty('isDeleted')) dataObject.isDeleted = false;
+			
 			/**
 			 * Примерный алгоритм Material Path
 			 * если нет предка, надо найти максимальный
@@ -91,92 +101,101 @@ module.exports.create =  function(dataObject, responceCallback) {
 				"isHighlighted": dataObject.isHighlighted,
 				"isSpam": dataObject.isSpam,
 				"message": dataObject.message,
-				"parent": dataObject.parent,
+				"parent": +dataObject.parent || (dataObject.parent !== '0' ? null: 0),
 				"thread": dataObject.thread,
-				"user": dataObject.userEmail
+				"user": dataObject.user
 			});
 		}
 	});
 }
 
 module.exports.details =  function(dataObject, responceCallback) {
+	if (!helper.requireFields(dataObject, ['post', ])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
+	}
 	connection.db.query('SELECT * FROM post WHERE id = ?', 
 		[dataObject.post], 
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
-			else {
-				if (res.length === 0) err = error.norecord;
-			}
 			if (err) responceCallback(err.code, err.message);
 			else {
-				//все ок и post найден
-				//отбрасываем лишнее
-				res = res[0];
-				async.parallel({
-					user: function (callback) {
-						if (helper.isEntry('user', dataObject.related)) {
-							//нужно дальше искать информацию по юзеру
-							var userObject = {
-								user: res.userEmail
+				if (res.length === 0) {
+					responceCallback(1, "sdfsdfds");
+					return;
+				} else {
+
+
+					//все ок и post найден
+					//отбрасываем лишнее
+					res = res[0];
+					async.parallel({
+						user: function (callback) {
+							if (helper.isEntry('user', dataObject.related)) {
+								//нужно дальше искать информацию по юзеру
+								var userObject = {
+									user: res.userEmail
+								}
+								userModel.moreDetails(userObject, userObject, userObject, function(code, res){
+									callback(null, res);
+								});
+							} else {
+								//не нужно дальше искать информацию по юзеру
+								callback(null, res.userEmail);
 							}
-							userModel.moreDetails(userObject, userObject, userObject, function(code, res){
-								callback(null, res);
-							});
-						} else {
-							//не нужно дальше искать информацию по юзеру
-							callback(null, res.userEmail);
-						}
-					},
-					forum: function (callback) {
-						if (helper.isEntry('forum', dataObject.related)) {
-							//нужно дальше искать информацию по форуму
-							var forumObject = {
-								forum: res.forumShortname
+						},
+						forum: function (callback) {
+							if (helper.isEntry('forum', dataObject.related)) {
+								//нужно дальше искать информацию по форуму
+								var forumObject = {
+									forum: res.forumShortname
+								}
+								forumModel.details(forumObject, function(code, res){
+									callback(null, res);
+								});
+							} else {
+								//не нужно дальше искать информацию по форуму
+								callback(null, res.forumShortname);
 							}
-							forumModel.details(forumObject, function(code, res){
-								callback(null, res);
-							});
-						} else {
-							//не нужно дальше искать информацию по форуму
-							callback(null, res.forumShortname);
-						}
-					},
-					thread: function (callback) {
-						if (helper.isEntry('thread', dataObject.related)) {
-							//нужно дальше искать информацию по треду
-							var threadObject = {
-								thread: res.threadId
+						},
+						thread: function (callback) {
+							if (helper.isEntry('thread', dataObject.related)) {
+								//нужно дальше искать информацию по треду
+								var threadObject = {
+									thread: res.threadId
+								}
+								threadModel.details(threadObject, function(code, res){
+									callback(null, res);
+								});
+							} else {
+								//не нужно дальше искать информацию по треду
+								callback(null, res.threadId);
 							}
-							threadModel.details(threadObject, function(code, res){
-								callback(null, res);
-							});
-						} else {
-							//не нужно дальше искать информацию по треду
-							callback(null, res.threadId);
 						}
-					}
-				}, function (err, results) {
-					if (err) responceCallback(err.code, err.message);
-					else {
-						responceCallback(0, {
-							"date": moment(res.date).format("YYYY-MM-DD HH:mm:ss"),
-							"dislikes": res.dislikes,
-							"forum": results.forum,
-							"id": res.id,
-							"isApproved": !!res.isApproved,
-							"isDeleted": !!res.isDeleted,
-							"isEdited": !!res.isEdited,
-							"isHighlighted": !!res.isHighlighted,
-							"isSpam": !!res.isSpam,
-							"likes": res.likes,
-							"message": res.message,
-							"parent": res.parent,
-							"points": res.points,
-							"thread": results.thread,
-							"user": results.user
-						});
-					}
-				});
+					}, function (err, results) {
+						if (err) responceCallback(err.code, err.message);
+						else {
+								responceCallback(0, {
+									"date": moment(res.date).format("YYYY-MM-DD HH:mm:ss"),
+									"dislikes": res.dislikes,
+									"forum": results.forum,
+									"id": res.id,
+									"isApproved": !!res.isApproved,
+									"isDeleted": !!res.isDeleted,
+									"isEdited": !!res.isEdited,
+									"isHighlighted": !!res.isHighlighted,
+									"isSpam": !!res.isSpam,
+									"likes": res.likes,
+									"message": res.message,
+									"parent": +res.parent || (res.parent !== '0' ? null: 0),
+									"points": res.points,
+									"thread": res.threadId,
+									"user": results.user
+								});
+							
+						}
+					});
+				}
 			}
 		});
 }
@@ -220,7 +239,7 @@ module.exports.list =  function(dataObject, responceCallback) {
 						"isSpam": !!node.isSpam,
 						"likes": node.likes,
 						"message": node.message,
-						"parent": node.parent,
+						"parent": +node.parent || (node.parent !== '0' ? null: 0),
 						"points": node.points,
 						"thread": node.threadId,
 						"user": node.userEmail
@@ -236,6 +255,10 @@ module.exports.remove =  function(dataObject, responceCallback) {
 		[dataObject.post], 
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
+			else {			
+				if (res.length == 0) err = helper.norecord;
+			}
+			err = helper.norecord;
 			if (err) responceCallback(err.code, err.message) 
 			else {
 				async.parallel([
