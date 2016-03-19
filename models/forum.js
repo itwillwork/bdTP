@@ -216,13 +216,12 @@ function getSQLForListUsers(wherefrom) {
 	wherefrom.order
 	wherefrom.since_id
 	*/
-	var sql = 'SELECT DISTINCT post.userEmail AS uEmail FROM forum '; 
+	var sql = 'SELECT DISTINCT userEmail AS uEmail FROM post '; 
 
-	sql += ' JOIN post ON post.forumShortname = forum.shortname ';
 	sql += ' JOIN user ON user.email = post.userEmail ';
 	
 	sql += ' WHERE isDeleted = false ';
-	sql += ' AND shortname = "' + wherefrom.forum + '" ';
+	sql += ' AND post.forumShortname = "' + wherefrom.forum + '" ';
 	if (wherefrom.since_id) {
 		sql += ' AND user.id >= ' + wherefrom.since_id;	
 	}
@@ -257,9 +256,6 @@ module.exports.listUsers = function(dataObject, responceCallback) {
 			connection.db.query( getSQLForListUsers(dataObject),
 				function(err, res) {
 					if (err) err = helper.mysqlError(err.errno);
-					else {
-						if (res.length === 0) err = error.norecord;
-					}
 					if (err) callback(err, null);
 					else callback(null, res);
 				});
