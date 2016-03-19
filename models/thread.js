@@ -166,7 +166,7 @@ module.exports.list =  function(dataObject, responceCallback) {
 						"posts": node.posts,
 						"slug": node.slug,
 						"title": node.title,
-						"user": node.user
+						"user": node.userEmail || null
 					}
 				});
 				responceCallback(0, res);
@@ -180,7 +180,6 @@ function descTreatment(res) {
 	for (var i = 0; i < res.length; i++) {
 
 		if (res[i].materPath.length === 2) {
-			//console.log(res[i].materPath);
 			rightFlag = i;
 			if ((rightFlag - leftFlag) > 2) {
 				var i, j, buf;
@@ -193,8 +192,6 @@ function descTreatment(res) {
 			}
 			leftFlag = rightFlag;
 		}
-		//console.log(leftFlag, rightFlag);
-
 	}
 }
 
@@ -262,9 +259,9 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 						"message": node.message,
 						"parent": +node.parent || (node.parent !== '0' ? null: 0),
 						"points": node.points,
-						"thread": node.thread,
-						"user": node.user,
-						"materPath": node.materPath
+						"thread": node.threadId,
+						"user": node.userEmail,
+						//"materPath": node.materPath
 					}
 				});
 				responceCallback(0, res);

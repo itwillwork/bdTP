@@ -206,13 +206,30 @@ module.exports.listThreads = function(dataObject, responceCallback) {
  * составитель запросов для listUsers
  */
 function getSQLForListUsers(wherefrom) {
-	var sql = 'SELECT userEmail AS user FROM forum';
-	sql += ' WHERE id >= ' + wherefrom.since_id;
-	sql += ' GROUP BY user ';
+	/**
+	 * SELECT post.userEmail FROM forum JOIN post ON post.forumShortname = forum.shortname JOIN user ON user.email = post.userEmail where shortname = "forumwithsufficientlylargename" AND user.id >= 2;
+	 *   AND user.id >= 2;
+	 */
+	/*
+	wherefrom.forum
+	wherefrom.limit
+	wherefrom.order
+	wherefrom.since_id
+	*/
+	var sql = 'SELECT DISTINCT post.userEmail AS uEmail FROM forum '; 
+
+	sql += ' JOIN post ON post.forumShortname = forum.shortname ';
+	sql += ' JOIN user ON user.email = post.userEmail ';
+	
+	sql += ' WHERE isDeleted = false ';
+	sql += ' AND shortname = "' + wherefrom.forum + '" ';
+	if (wherefrom.since_id) {
+		sql += ' AND user.id >= ' + wherefrom.since_id;	
+	}
 	if (wherefrom.order !== 'asc') {
 		wherefrom.order = 'desc';
 	}
-	sql += ' ORDER BY user ' + wherefrom.order;
+	sql += ' ORDER BY user.name ' + wherefrom.order;
 	if (wherefrom.limit) {
 		sql += ' LIMIT ' + wherefrom.limit;
 	}
@@ -250,10 +267,17 @@ module.exports.listUsers = function(dataObject, responceCallback) {
 	], function(err, results) {
 		if (err) responceCallback(err.code, err.message);
 		else {
+			if (results[2].length === 0) {
+				responceCallback(0, []);
+				return;
+			}
 			//преобразуем обекты содержащие emailы в функции для асинхронного вызова
 			results = results[2].map( function(elem) {
 				return function (callback) {
-					userModel.moreDetails(elem, elem, elem, 
+					var userObject = {
+						user: elem.uEmail
+					}
+					userModel.moreDetails(userObject, userObject, userObject, 
 						function(code, res) {
 							callback(null, res);
 						});

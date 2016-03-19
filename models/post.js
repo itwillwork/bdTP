@@ -189,7 +189,7 @@ module.exports.details =  function(dataObject, responceCallback) {
 									"message": res.message,
 									"parent": +res.parent || (res.parent !== '0' ? null: 0),
 									"points": res.points,
-									"thread": res.threadId,
+									"thread": results.thread,
 									"user": results.user
 								});
 							

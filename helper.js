@@ -13,7 +13,12 @@ module.exports.requireFields = function (dataObject, requriedFields) {
 	}
 	return true;
 };
-
+/**
+ * Проверяет все ли значения первого массива подходят под возможные значения второго и нет ли среди них лишних
+ * @param  {Array} dataObject
+ * @param  {Array} requriedFields
+ * @return {Boolean}
+ */
 module.exports.possibleValuesForVarieble = function (dataObject, requriedFields) {
 	if (!(dataObject instanceof Array)) dataObject = [dataObject];
 	for (var j = 0; j < dataObject.length; j++) {
@@ -108,7 +113,7 @@ module.exports.mysqlError = function (errCode) {
 			return this.errors.semantic;
 			break;
 		default:
-			console.log(errCode);
+			//console.log(errCode);
 			return this.errors.unknown;
 			break;
 	}

@@ -74,7 +74,7 @@ module.exports.listFollowing = function(dataObject, responceCallback) {
 				callback(error.semantic, null);
 			} else {
 				callback(null, null);
-			}
+			}	
 		},
 		function (callback) {
 			if (!helper.requireFields(dataObject, ['user'])) {
@@ -82,16 +82,45 @@ module.exports.listFollowing = function(dataObject, responceCallback) {
 			} else {
 				callback(null, null);
 			}
+		},
+		function (callback) {
+			connection.db.query( getSQLForFollowers('followerEmail', 'followeeEmail', dataObject),
+				[dataObject.user], 
+				function(err, res) {
+					if (err) err = helper.mysqlError(err.errno);
+					if (err) callback(err, null);
+					else callback(null, res);
+				});
 		}
-	], function(err, res) {
+	], function(err, results) {
 		if (err) responceCallback(err.code, err.message);
 		else {
-			var userEmail = {
-				user: dataObject.user
+			if (results[2].length === 0) {
+				responceCallback(0, []);
+				return;
 			}
-			module.exports.moreDetails(userEmail, userEmail, dataObject, responceCallback);
+			//преобразуем обекты содержащие emailы в функции для асинхронного вызова
+			results = results[2].map( function(elem) {
+				return function (callback) {
+					var userEmail = {
+						user: elem.followerEmail
+					}
+					module.exports.moreDetails(userEmail, userEmail, userEmail, 
+						function(code, res) {
+							callback(null, res);
+						});
+				}
+			});
+			//асинхронный запрос всех юзеров
+			async.parallel(results,
+			function (err, results){
+				if (err) responceCallback(err.code, err.message);
+				else {
+					responceCallback(0, results);
+				}
+			});	
 		}
-	});
+	}); 
 }
 
 module.exports.listFollowers = function(dataObject, responceCallback) {
@@ -109,14 +138,43 @@ module.exports.listFollowers = function(dataObject, responceCallback) {
 			} else {
 				callback(null, null);
 			}
+		},
+		function (callback) {
+			connection.db.query( getSQLForFollowers('followeeEmail', 'followerEmail', dataObject),
+				[dataObject.user], 
+				function(err, res) {
+					if (err) err = helper.mysqlError(err.errno);
+					if (err) callback(err, null);
+					else callback(null, res);
+				});
 		}
-	], function(err, res) {
+	], function(err, results) {
 		if (err) responceCallback(err.code, err.message);
 		else {
-			var userEmail = {
-				user: dataObject.user
+			if (results[2].length === 0) {
+				responceCallback(0, []);
+				return;
 			}
-			module.exports.moreDetails(userEmail, dataObject, userEmail, responceCallback);
+			//преобразуем обекты содержащие emailы в функции для асинхронного вызова
+			results = results[2].map( function(elem) {
+				return function (callback) {
+					var userEmail = {
+						user: elem.followeeEmail
+					}
+					module.exports.moreDetails(userEmail, userEmail, userEmail, 
+						function(code, res) {
+							callback(null, res);
+						});
+				}
+			});
+			//асинхронный запрос всех юзеров
+			async.parallel(results,
+			function (err, results){
+				if (err) responceCallback(err.code, err.message);
+				else {
+					responceCallback(0, results);
+				}
+			});	
 		}
 	}); 
 }
@@ -247,23 +305,25 @@ module.exports.updateProfile = function(dataObject, responceCallback) {
 /**
  * составитель запросов для user.listFollowers и user.listFollowing
  */
-function getSQLForFollowers (target, wherefore, wherefrom) {
+function getSQLForFollowers (target, wherefore, parameter) {
+	/**
+	 * select followerEmail from followers JOIN user ON user.email = followers.followeeEmail WHERE followers.followeeEmail = 'example@mail.ru';
+	 */
 	var sql = 'SELECT ' + target + ' FROM followers ';
-	if (wherefrom.order !== 'asc') {
-		wherefrom.order = 'desc';
+	if (parameter.order !== 'asc') {
+		parameter.order = 'desc';
 	}
-	if (wherefrom.since_id) {
+	if (parameter.since_id) {
 		sql += '  JOIN user ON followers.' + target + ' = user.email ';
 	}
 	sql += ' WHERE ' + wherefore + ' = ? ';
-	if (wherefrom.since_id) {
-		sql += ' AND user.id >= ' + wherefrom.since_id
+	if (parameter.since_id) {
+		sql += ' AND user.id >= ' + parameter.since_id
 	}
-	sql += ' ORDER BY ' + target + ' ' + wherefrom.order;
-	if (wherefrom.limit) {
-		sql += ' LIMIT ' + wherefrom.limit;
+	sql += ' ORDER BY ' + target + ' ' + parameter.order;
+	if (parameter.limit) {
+		sql += ' LIMIT ' + parameter.limit;
 	}
-	console.log(sql);
 	return sql;
 } 
 
@@ -282,7 +342,7 @@ module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, 
 				});
 		},
 		followers: function (callback) {		
-			connection.db.query( getSQLForFollowers('followeeEmail', 'followerEmail', listFollowers),
+			connection.db.query( getSQLForFollowers('followeeEmail', 'followerEmail', listFollowing),
 				[listFollowers.user], 
 				function(err, res) {
 					if (err) err = helper.mysqlError(err.errno);
