@@ -173,41 +173,148 @@ module.exports.list =  function(dataObject, responceCallback) {
 			}
 		});
 }
-
+/**
+ * переворачивает подмассивы с одинаковым началом materPath
+ * @param  {[type]} res [description]
+ * @return {[type]}     [description]
+ */
 function descTreatment(res) {
+	if (res.length < 2) return;
 	var leftFlag = 0,
-		rightFlag = 0;
-	for (var i = 0; i < res.length; i++) {
-
-		if (res[i].materPath.length === 2) {
+		rightFlag = 0,
+		prefix = res[0].materPath.slice(0, 2);
+	for (var i = 0; i < res.length - 1; i++) {
+		if ( prefix !== res[i+1].materPath.slice(0, 2) ) {
 			rightFlag = i;
-			if ((rightFlag - leftFlag) > 2) {
-				var i, j, buf;
-				    for (i = leftFlag, j = rightFlag; i < j; ++i, --j ) 
-				    {
-				        buf = res[i];
-				        res[i] = res[j];
-				        res[j] = buf;
-				    }
-			}
-			leftFlag = rightFlag;
+			reversArray(res, leftFlag, rightFlag);
+			leftFlag = i + 1;
+			prefix = res[i+1].materPath.slice(0, 2);
 		}
+		console.log(leftFlag, rightFlag);
+	}
+	rightFlag = i;
+	reversArray(res, leftFlag, rightFlag);
+}
+/**
+ * переворачивает 
+ * @param  {[type]} res       [description]
+ * @param  {[type]} leftFlag  [description]
+ * @param  {[type]} rightFlag [description]
+ * @return {[type]}           [description]
+ */
+function reversArray(res, leftFlag, rightFlag) {
+	if (leftFlag === rightFlag) return;
+	var k, j, buf;
+	for (k = leftFlag, j = rightFlag; k < j; ++k, --j ) {
+		buf = res[k];
+		res[k] = res[j];
+		res[j] = buf;
 	}
 }
 
 module.exports.listPosts =  function(dataObject, responceCallback) {
 	//собирание запроса
+	var sql;
 	if(!dataObject.hasOwnProperty('sort')) dataObject.sort = 'flat';
 	
-	var sql = ' SELECT * FROM post '
+	if (dataObject.order !== 'asc') {
+		dataObject.order = 'desc';
+	}
+
+	if ((dataObject.sort === 'tree') && (dataObject.order === 'desc')) {
+		/*
+		select materPath from post where threadId = 1 and materPath >= 
+		(
+		SELECT LPAD(materPath, 2, '') as prefix from post 
+		where threadId = 1 order by materPath desc limit 9, 1
+			) 
+		order by materPath desc;
+		 */
+		/*
+		SELECT MAX(prefix) from (SELECT LPAD(materPath, 2, '') as prefix  from post  where threadId = 1 and date >= "2014-01-01 00:00:00"  order by materPath asc limit 5) as tbl;
+		 */
+		/*
+		select materPath from post where threadId = 1 and materPath >= (
+			SELECT MAX(prefix) from (
+				SELECT LPAD(materPath, 2, '') as prefix  
+				from post  
+				where threadId = 1 and date >= "2014-01-01 00:00:00"  
+				order by materPath asc limit 5
+			) as tbl;
+		) order by materPath desc;
+		 */
+		sql = ' select * from post where threadId = ' + dataObject.thread + ' and ';
+		sql += ' materPath >= (';
+						if (dataObject.hasOwnProperty('limit')) {
+							sql += 'SELECT MAX(prfx) from ( ' +
+									' SELECT LPAD(materPath, 2, "") as prfx ' + 
+									' from post ' + 
+									' where threadId = "' + dataObject.thread + '" '; 
+							if (dataObject.hasOwnProperty('since')) {
+								sql += ' and date >= "' + dataObject.since + '" ';  
+							}
+							sql += ' order by materPath asc limit ' + dataObject.limit + ' ';
+							sql += ') as tbl ';
+						} else {
+							sql += ' SELECT LPAD(materPath, 2, "") ' + 
+									' from post ' + 
+									' where threadId = ' + dataObject.thread; 
+							if (dataObject.hasOwnProperty('since')) {
+								sql += ' and date >= "' + dataObject.since + '" ';
+							}
+							sql += ' order by materPath asc ';
+							sql += 'limit 1';
+						}
+		sql += ' )'; 
+		if (dataObject.hasOwnProperty('since')) {
+			sql += ' and date >= "' + dataObject.since + '" ';
+		}
+		sql += ' order by materPath desc; ';
+		console.log(sql);
+		connection.db.query(sql, 
+			[], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			else {
+				descTreatment(res);
+				if (dataObject.limit) {
+					res.length = dataObject.limit;
+				}
+				//console.log(res.length);
+				
+				res = res.map(function(node) {
+					return {
+						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
+						"dislikes": node.dislikes,
+						"forum": node.forumShortname,
+						"id": node.id,
+						"isApproved": !!node.isApproved,
+						"isDeleted": !!node.isDeleted,
+						"isEdited": !!node.isEdited,
+						"isHighlighted": !!node.isHighlighted,
+						"isSpam": !!node.isSpam,
+						"likes": node.likes,
+						"message": "node.message",
+						"parent": +node.parent || (node.parent !== '0' ? null: 0),
+						"points": node.points,
+						"thread": node.threadId,
+						"user": node.userEmail
+						//"materPath": node.materPath
+					}
+				});
+				responceCallback(0, res);
+			}
+		});
+		
+		return;
+	}
+
+	sql = ' SELECT * FROM post ';
 
 	sql += ' WHERE (threadId = "' + dataObject.thread + '") ';
 	
 	if (dataObject.since) sql += ' AND (date >= "' + dataObject.since + '") ';
-
-	if (dataObject.order !== 'asc') {
-		dataObject.order = 'desc';
-	}
 	
 	switch (dataObject.sort) {
 		case 'flat': {
@@ -232,7 +339,7 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 			} 
 			break;
 	}
-
+	console.log(sql);
 	//запрос
 	connection.db.query(sql, [], 
 		function(err, res) {
@@ -240,7 +347,8 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message);
 			else {
 				//жуткий костыль
-				if (((dataObject.sort === 'tree') || (dataObject.sort === 'parent_tree')) && (dataObject.order === 'desc')) {
+				
+				if ((dataObject.sort === 'parent_tree') && (dataObject.order === 'desc')) {
 					descTreatment(res);	
 				}
 				
@@ -260,7 +368,7 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 						"parent": +node.parent || (node.parent !== '0' ? null: 0),
 						"points": node.points,
 						"thread": node.threadId,
-						"user": node.userEmail,
+						"user": node.userEmail
 						//"materPath": node.materPath
 					}
 				});

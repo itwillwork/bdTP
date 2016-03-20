@@ -252,7 +252,6 @@ module.exports.listUsers = function(dataObject, responceCallback) {
 			}
 		},
 		function (callback) {
-			//connection.db.query( 'SELECT userEmail AS user FROM forum GROUP BY userEmail',
 			connection.db.query( getSQLForListUsers(dataObject),
 				function(err, res) {
 					if (err) err = helper.mysqlError(err.errno);
