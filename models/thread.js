@@ -190,7 +190,6 @@ function descTreatment(res) {
 			leftFlag = i + 1;
 			prefix = res[i+1].materPath.slice(0, 2);
 		}
-		console.log(leftFlag, rightFlag);
 	}
 	rightFlag = i;
 	reversArray(res, leftFlag, rightFlag);
@@ -270,7 +269,6 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 			sql += ' and date >= "' + dataObject.since + '" ';
 		}
 		sql += ' order by materPath desc; ';
-		console.log(sql);
 		connection.db.query(sql, 
 			[], 
 		function(err, res) {
@@ -281,8 +279,6 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 				if (dataObject.limit) {
 					res.length = dataObject.limit;
 				}
-				//console.log(res.length);
-				
 				res = res.map(function(node) {
 					return {
 						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
@@ -295,7 +291,7 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 						"isHighlighted": !!node.isHighlighted,
 						"isSpam": !!node.isSpam,
 						"likes": node.likes,
-						"message": "node.message",
+						"message": node.message,
 						"parent": +node.parent || (node.parent !== '0' ? null: 0),
 						"points": node.points,
 						"thread": node.threadId,
@@ -339,7 +335,6 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 			} 
 			break;
 	}
-	console.log(sql);
 	//запрос
 	connection.db.query(sql, [], 
 		function(err, res) {
