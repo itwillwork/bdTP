@@ -110,11 +110,9 @@ module.exports.details =  function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message);
 			else {
 				if (res.length === 0) {
-					responceCallback(1, "sdfsdfds");
+					responceCallback(error.norecord.code, error.norecord.message);
 					return;
 				} else {
-
-
 					//все ок и post найден
 					//отбрасываем лишнее
 					res = res[0];
@@ -212,7 +210,6 @@ module.exports.remove =  function(dataObject, responceCallback) {
 			else {			
 				if (res.length == 0) err = helper.norecord;
 			}
-			err = helper.norecord;
 			if (err) responceCallback(err.code, err.message) 
 			else {
 				async.parallel([
@@ -249,6 +246,9 @@ module.exports.restore =  function(dataObject, responceCallback) {
 		[dataObject.post], 
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
+			else {			
+				if (res.length == 0) err = helper.norecord;
+			}
 			if (err) responceCallback(err.code, err.message) 
 			else {
 				async.parallel([
