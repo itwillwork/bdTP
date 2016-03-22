@@ -41,14 +41,7 @@ module.exports.create = function(dataObject, responceCallback) {
 		if (err) responceCallback(err.code, err.message);
 		else {
 			res = res[2][0];
-			responceCallback(0, {
-				"about": res.about,
-				"email": res.email,
-				"id": res.id,
-				"isAnonymous": !!(res.isAnonymous),
-				"name": res.name,
-				"username": res.username 
-			});	
+			responceCallback(0, module.exports.view(res, [], [], []));
 		}
 	});
 }
@@ -375,35 +368,9 @@ module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, 
 			if (results.userInfo)
 			{
 				results.userInfo = results.userInfo[0];
-				responceCallback(0, {
-					"about": results.userInfo.about || null,
-					"email": results.userInfo.email,
-					"following": results.followers.map(function(elem) {
-								  return elem.followeeEmail;
-								}),
-					"followers": results.following.map(function(elem) {
-								  return elem.followerEmail;
-								}) ,
-					"id": results.userInfo.id,
-					"isAnonymous": !!(results.userInfo.isAnonymous) ,
-					"name": results.userInfo.name || null,
-					"subscriptions": results.subscriptions.map(function(elem) {
-								  return elem.threadId;
-								}) ,
-					"username": results.userInfo.username || null
-					});	
+				responceCallback(0, module.exports.view(results.userInfo, results.followers, results.following, results.subscriptions) );
 			} else {
-				responceCallback(0, {
-					"about": null,
-					"email": dataObject.user,
-					"followers": [],
-					"following": [],
-					"id": null,
-					"isAnonymous": null,
-					"name": null,
-					"subscriptions": [],
-					"username": null 
-					});	
+				responceCallback(0, module.exports.view({email: dataObject.user}, [], [], []) );
 			}
 			
 		}
@@ -461,4 +428,24 @@ module.exports.listPosts = function(dataObject, responceCallback) {
 				responceCallback(0, res);
 			};
 		});
+}
+
+module.exports.view = function (dataObject, followerData, folowingData, subscriptionsData) {
+	return {
+		"about": dataObject.about || null,
+		"email": dataObject.email,
+		"following": followerData.map(function(elem) {
+					  return elem.followeeEmail;
+					}),
+		"followers": folowingData.map(function(elem) {
+					  return elem.followerEmail;
+					}) ,
+		"id": dataObject.id,
+		"isAnonymous": !!(dataObject.isAnonymous) ,
+		"name": dataObject.name || null,
+		"subscriptions": subscriptionsData.map(function(elem) {
+					  return elem.threadId;
+					}) ,
+		"username": dataObject.username || null
+	}
 }
