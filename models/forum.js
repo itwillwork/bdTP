@@ -8,14 +8,10 @@ var connection = require('./../connection'),
 	error = helper.errors;
 
 module.exports.create = function(dataObject, responceCallback) {
+	if (!helper.requireFields(dataObject, ['name', 'short_name', 'user'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+	}
 	async.series([
-		function (callback) {
-			if (!helper.requireFields(dataObject, ['name', 'short_name', 'user'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
-			}
-		},
 		function (callback) {
 			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
 				[dataObject.user], 
@@ -52,7 +48,7 @@ module.exports.create = function(dataObject, responceCallback) {
 	function(err, results){
 		if (err) responceCallback(err.code, err.message);
 		else {
-			results = results[3][0];
+			results = results[2][0];
 			responceCallback(0, views.forum(results, results.userEmail));
 		}
 	});
@@ -60,42 +56,35 @@ module.exports.create = function(dataObject, responceCallback) {
 
 
 module.exports.details = function(dataObject, responceCallback) {
-	async.series([
-		function (callback) {
-			if (!helper.possibleValues([dataObject.related], [['user', '']])) {
-				callback(error.semantic, null);
-			} else if (!helper.requireFields(dataObject, ['forum'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
+	if (!helper.possibleValues([dataObject.related], [['user', '']])) {
+		responceCallback(error.semantic.code, error.semantic.message);
+		return;
+	}
+	if (!helper.requireFields(dataObject, ['forum'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
+	}
+
+	connection.db.query('SELECT * FROM forum WHERE shortname = ?',
+		[dataObject.forum], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			else {
+				if (res.length === 0) err = error.norecord;
 			}
-		},
-		function (callback) {
-			connection.db.query('SELECT * FROM forum WHERE shortname = ?',
-				[dataObject.forum], 
-				function(err, res) {
-					if (err) err = helper.mysqlError(err.errno);
-					else {
-						if (res.length === 0) err = error.norecord;
+			if (err) responceCallback(err.code, err.message);
+			else {
+				res = res[0];
+				if (dataObject.related === 'user') {
+					var userObject = {
+						user: res.userEmail
 					}
-					if (err) callback(err, null);
-					else callback(null, res);
-				});
-		},
-	], function(err, results) {
-		if (err) responceCallback(err.code, err.message);
-		else {
-			results = results[1][0];
-			if (dataObject.related === 'user') {
-				var userObject = {
-					user: results.userEmail
+					userModel.moreDetails(userObject, userObject, userObject, 
+						wrapperFunctionForDetails(responceCallback, res));
+				} else {
+					responceCallback(0, views.forum(res, res.userEmail));
 				}
-				userModel.moreDetails(userObject, userObject, userObject, 
-					wrapperFunctionForDetails(responceCallback, results));
-			} else {
-				responceCallback(0, views.forum(results, results.userEmail));
 			}
-		}
 	});
 }
 /**
@@ -187,9 +176,6 @@ module.exports.listThreads = function(dataObject, responceCallback) {
 		});
 }
 
-/**
- * составитель запросов для listUsers
- */
 function getSQLForListUsers(wherefrom) {
 	/**
 	 * SELECT post.userEmail FROM forum JOIN post ON post.forumShortname = forum.shortname JOIN user ON user.email = post.userEmail where shortname = "forumwithsufficientlylargename" AND user.id >= 2;
@@ -215,58 +201,43 @@ function getSQLForListUsers(wherefrom) {
 } 
 
 module.exports.listUsers = function(dataObject, responceCallback) {
-	async.series([
-		function (callback) {
-			if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
-				callback(error.semantic, null);
-			} else {
-				callback(null, null);
-			}
-		},
-		function (callback) {
-			if (!helper.requireFields(dataObject, ['forum'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
-			}
-		},
-		function (callback) {
-			connection.db.query( getSQLForListUsers(dataObject),
-				function(err, res) {
-					if (err) err = helper.mysqlError(err.errno);
-					if (err) callback(err, null);
-					else callback(null, res);
-				});
-		}
-	], function(err, results) {
-		if (err) responceCallback(err.code, err.message);
-		else {
-			if (results[2].length === 0) {
-				responceCallback(0, []);
-				return;
-			}
-			//преобразуем обекты содержащие emailы в функции для асинхронного вызова
-			results = results[2].map( function(elem) {
-				return function (callback) {
-					var userObject = {
-						user: elem.uEmail
+	if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
+		responceCallback(error.semantic.code, error.semantic.message);
+		return;
+	}
+	if (!helper.requireFields(dataObject, ['forum'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
+	}
+	connection.db.query( getSQLForListUsers(dataObject),
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			else {
+				if (res.length === 0) {
+					responceCallback(0, []);
+					return;
+				}
+				//преобразуем обекты содержащие emailы в функции для асинхронного вызова
+				res = res.map( function(elem) {
+					return function (callback) {
+						var userObject = {
+							user: elem.uEmail
+						}
+						userModel.moreDetails(userObject, userObject, userObject, 
+							function(code, res) {
+								callback(null, res);
+							});
 					}
-					userModel.moreDetails(userObject, userObject, userObject, 
-						function(code, res) {
-							callback(null, res);
-						});
-				}
-			});
-			//асинхронный запрос всех юзеров
-			async.parallel(results,
-			function (err, results){
-				if (err) responceCallback(err.code, err.message);
-				else {
-					responceCallback(0, results);
-				}
-			});
-		}
-	});
+				});
+				//асинхронный запрос всех юзеров
+				async.parallel(res,
+				function (err, results){
+					if (err) responceCallback(err.code, err.message);
+					else {
+						responceCallback(0, results);
+					}
+				});
+			}
+		});
 }
-
-

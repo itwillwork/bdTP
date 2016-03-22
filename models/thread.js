@@ -18,32 +18,22 @@ module.exports.close =  function(dataObject, responceCallback) {
 
 module.exports.create =  function(dataObject, responceCallback) {
 	if (dataObject.isDeleted !== true) dataObject.isDeleted = false;
-	async.series([
-		function (callback) {
-			if (!helper.requireFields(dataObject, ['forum', 'title', 'isClosed', 'user', 'date', 'message', 'slug'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
+	if (!helper.requireFields(dataObject, ['forum', 'title', 'isClosed', 'user', 'date', 'message', 'slug'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
+	}
+	connection.db.query('INSERT INTO thread (forumShortname, title, isClosed, userEmail, date, message, slug, isDeleted) ' +
+									'values (?, ?, ?, ?, ?, ?, ?, ?)', 
+		[dataObject.forum, dataObject.title, dataObject.isClosed, dataObject.user, dataObject.date, dataObject.message, dataObject.slug, dataObject.isDeleted], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			else {
+				var resp = views.thread(dataObject, dataObject.forum, dataObject.user);
+				resp.id = res.insertId;
+				responceCallback(0, resp);
 			}
-		},
-		function (callback) {
-			connection.db.query('INSERT INTO thread (forumShortname, title, isClosed, userEmail, date, message, slug, isDeleted) ' +
-											'values (?, ?, ?, ?, ?, ?, ?, ?)', 
-				[dataObject.forum, dataObject.title, dataObject.isClosed, dataObject.user, dataObject.date, dataObject.message, dataObject.slug, dataObject.isDeleted], 
-				function(err, res) {
-					if (err) callback( helper.mysqlError(err.errno) , null);
-					else callback(null, res);
-				});
-		}
-	],
-	function(err, results){
-		if (err) responceCallback(err.code, err.message);
-		else {
-			var resp = views.thread(dataObject, dataObject.forum, dataObject.user);
-			resp.id = results[1].insertId;
-			responceCallback(0, resp);
-		}
-	});
+		});
 }
 
 module.exports.details =  function(dataObject, responceCallback) {
@@ -108,8 +98,7 @@ module.exports.details =  function(dataObject, responceCallback) {
 			}
 		});
 }
-
-module.exports.list =  function(dataObject, responceCallback) {
+function getSQLforList(dataObject) {
 	var sql = ' SELECT * FROM thread '
 
 	if (dataObject.user) sql += ' WHERE (thread.userEmail = "' + dataObject.user + '") ';
@@ -125,7 +114,10 @@ module.exports.list =  function(dataObject, responceCallback) {
 	if (dataObject.limit) {
 		sql += ' LIMIT ' + dataObject.limit;
 	}
-	connection.db.query(sql, [], 
+	return sql;
+}
+module.exports.list =  function(dataObject, responceCallback) {
+	connection.db.query( getSQLforList(dataObject), [], 
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -137,9 +129,7 @@ module.exports.list =  function(dataObject, responceCallback) {
 			}
 		});
 }
-
-module.exports.listPosts =  function(dataObject, responceCallback) {
-	//собирание запроса
+function getSQLforListPosts(dataObject) {
 	var sql;
 	if(!dataObject.hasOwnProperty('sort')) dataObject.sort = 'flat';
 	if (dataObject.order !== 'asc') {
@@ -168,7 +158,6 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 		break;
 		case 'tree_desc':
 			sql += ' order by LPAD(materPath, 2, "") DESC, materPath ASC';
-			//sql += ' order by LPAD(materPath, 2, "") DESC, materPath DESC';
 			if (dataObject.limit) {
 				sql += ' LIMIT ' + dataObject.limit;
 			}
@@ -186,32 +175,17 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 			sql += ' order by LPAD(materPath, 2, "") DESC, materPath ASC';
 		break;
 	}
-	//запрос
-	connection.db.query(sql, [], 
+	return sql;
+}
+module.exports.listPosts =  function(dataObject, responceCallback) {
+	connection.db.query( getSQLforListPosts(dataObject), [], 
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
 			else {
 				res = res.map(function(node) {
 					return views.post(node, node.forumShortname, node.threadId, node.userEmail);
-					/*{
-						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
-						"dislikes": node.dislikes,
-						"forum": node.forumShortname,
-						"id": node.id,
-						"isApproved": !!node.isApproved,
-						"isDeleted": !!node.isDeleted,
-						"isEdited": !!node.isEdited,
-						"isHighlighted": !!node.isHighlighted,
-						"isSpam": !!node.isSpam,
-						"likes": node.likes,
-						"message": node.message,
-						"parent": +node.parent || (node.parent !== '0' ? null: 0),
-						"points": node.points,
-						"thread": node.threadId,
-						"user": node.userEmail
-						//"materPath": node.materPath
-					}*/
+					// {"materPath": node.materPath}
 				});
 				responceCallback(0, res);
 			}
