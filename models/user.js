@@ -1,9 +1,7 @@
 var connection = require('./../connection'),
 	helper = require('./../helper'),
-	moment = require('moment'),
 	async = require('async'),
-	//TODO убрать
-	postModel = require('./post'),
+	views = require('./../views'),
 	error = helper.errors;
 
 module.exports.create = function(dataObject, responceCallback) {
@@ -43,7 +41,7 @@ module.exports.create = function(dataObject, responceCallback) {
 		if (err) responceCallback(err.code, err.message);
 		else {
 			res = res[2][0];
-			responceCallback(0, module.exports.view(res, [], [], []));
+			responceCallback(0, views.user(res, [], [], []));
 		}
 	});
 }
@@ -370,9 +368,9 @@ module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, 
 			if (results.userInfo)
 			{
 				results.userInfo = results.userInfo[0];
-				responceCallback(0, module.exports.view(results.userInfo, results.followers, results.following, results.subscriptions) );
+				responceCallback(0, views.user(results.userInfo, results.followers, results.following, results.subscriptions) );
 			} else {
-				responceCallback(0, module.exports.view({email: dataObject.user}, [], [], []) );
+				responceCallback(0, views.user({email: dataObject.user}, [], [], []) );
 			}
 			
 		}
@@ -411,29 +409,10 @@ module.exports.listPosts = function(dataObject, responceCallback) {
 				res = res.map(function(node){
 					//чтобы работал единый стандарт вывода
 					node['id'] = node.postId;
-					return postModel.view(node, node.forumShortname, node.threadId, node.email);
+					return views.post(node, node.forumShortname, node.threadId, node.email);
 				});
 				responceCallback(0, res);
 			};
 		});
 }
 
-module.exports.view = function (dataObject, followerData, folowingData, subscriptionsData) {
-	return {
-		"about": dataObject.about || null,
-		"email": dataObject.email,
-		"following": followerData.map(function(elem) {
-					  return elem.followeeEmail;
-					}),
-		"followers": folowingData.map(function(elem) {
-					  return elem.followerEmail;
-					}) ,
-		"id": dataObject.id,
-		"isAnonymous": !!(dataObject.isAnonymous) ,
-		"name": dataObject.name || null,
-		"subscriptions": subscriptionsData.map(function(elem) {
-					  return elem.threadId;
-					}) ,
-		"username": dataObject.username || null
-	}
-}

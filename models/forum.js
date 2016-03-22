@@ -4,7 +4,7 @@ var connection = require('./../connection'),
 	userModel = require('./user'),
 	threadModel = require('./thread'),
 	postModel = require('./post'),
-	moment = require('moment'),
+	views = require('./../views'),
 	error = helper.errors;
 
 module.exports.create = function(dataObject, responceCallback) {
@@ -53,7 +53,7 @@ module.exports.create = function(dataObject, responceCallback) {
 		if (err) responceCallback(err.code, err.message);
 		else {
 			results = results[3][0];
-			responceCallback(0, module.exports.view(results, results.userEmail));
+			responceCallback(0, views.forum(results, results.userEmail));
 		}
 	});
 }
@@ -93,7 +93,7 @@ module.exports.details = function(dataObject, responceCallback) {
 				userModel.moreDetails(userObject, userObject, userObject, 
 					wrapperFunctionForDetails(responceCallback, results));
 			} else {
-				responceCallback(0, module.exports.view(results, results.userEmail));
+				responceCallback(0, views.forum(results, results.userEmail));
 			}
 		}
 	});
@@ -107,7 +107,7 @@ module.exports.details = function(dataObject, responceCallback) {
 function wrapperFunctionForDetails(responceCallback, results) {
 	return function(code, info) {
 				// предполагается, что code === 0, так как юзер должен быть
-				responceCallback(code, module.exports.view(results, info));
+				responceCallback(code, views.forum(results, info));
 			}
 }
 
@@ -269,11 +269,4 @@ module.exports.listUsers = function(dataObject, responceCallback) {
 	});
 }
 
-module.exports.view = function (dataObject, userData) {
-	return {
-		"id": dataObject.id,
-		"name": dataObject.name,
-		"short_name": dataObject.shortname,
-		"user": userData
-	}
-}
+

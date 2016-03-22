@@ -1,10 +1,10 @@
 var connection = require('./../connection'),
 	helper = require('./../helper'),
 	async = require('async'),
-	moment = require('moment'),
 	userModel = require('./user'),
 	threadModel = require('./thread'),
 	forumModel = require('./forum'),
+	views = require('./../views'),
 	error = helper.errors;
 
 module.exports.create =  function(dataObject, responceCallback) {
@@ -91,7 +91,7 @@ module.exports.create =  function(dataObject, responceCallback) {
 	], function (err, results) {
 		if (err) responceCallback(err.code, err.message);
 		else {
-			var resp = module.exports.view(dataObject, dataObject.forum, dataObject.thread, dataObject.user);
+			var resp = views.post(dataObject, dataObject.forum, dataObject.thread, dataObject.user);
 			resp.id = results[0].insertId
 			responceCallback(0, resp);
 		}
@@ -163,7 +163,7 @@ module.exports.details =  function(dataObject, responceCallback) {
 						}
 					}, function (err, results) {
 						if (err) responceCallback(err.code, err.message);
-						else responceCallback(0, module.exports.view(res, results.forum, results.thread, results.user));
+						else responceCallback(0, views.post(res, results.forum, results.thread, results.user));
 					});
 				}
 			}
@@ -197,7 +197,7 @@ module.exports.list =  function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message) 
 			else {
 				res = res.map(function(node){
-					return module.exports.view(node, node.forumShortname, node.threadId, node.userEmail);
+					return views.post(node, node.forumShortname, node.threadId, node.userEmail);
 				});
 				responceCallback(0, res);
 			}
@@ -302,25 +302,4 @@ module.exports.vote =  function(dataObject, responceCallback) {
 				module.exports.details(dataObject, responceCallback);	
 			}
 		});
-}
-
-
-module.exports.view = function (dataObject, forumData, threadData, userData) {
-	return {
-		"date": moment(dataObject.date).format("YYYY-MM-DD HH:mm:ss"),
-		"dislikes": dataObject.dislikes,
-		"forum": forumData,
-		"id": dataObject.id,
-		"isApproved": !!dataObject.isApproved,
-		"isDeleted": !!dataObject.isDeleted,
-		"isEdited": !!dataObject.isEdited,
-		"isHighlighted": !!dataObject.isHighlighted,
-		"isSpam": !!dataObject.isSpam,
-		"likes": dataObject.likes,
-		"message": dataObject.message,
-		"parent": +dataObject.parent || (dataObject.parent !== '0' ? null: 0),
-		"points": dataObject.points,
-		"thread": threadData,
-		"user": userData
-	}
 }

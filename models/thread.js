@@ -1,10 +1,9 @@
 var connection = require('./../connection'),
 	helper = require('./../helper'),
 	async = require('async'),
-	moment = require('moment'),
 	userModel = require('./user'),
 	forumModel = require('./forum'),
-	postModel = require('./post'),
+	views = require('./../views'),
 	error = helper.errors;
 
 module.exports.close =  function(dataObject, responceCallback) {
@@ -40,7 +39,7 @@ module.exports.create =  function(dataObject, responceCallback) {
 	function(err, results){
 		if (err) responceCallback(err.code, err.message);
 		else {
-			var resp = module.exports.view(dataObject, dataObject.forum, dataObject.user);
+			var resp = views.thread(dataObject, dataObject.forum, dataObject.user);
 			resp.id = results[1].insertId;
 			responceCallback(0, resp);
 		}
@@ -103,7 +102,7 @@ module.exports.details =  function(dataObject, responceCallback) {
 				}, function (err, results) {
 					if (err) responceCallback(err.code, err.message);
 					else {
-						responceCallback(0, module.exports.view(res, results.forum, results.user));
+						responceCallback(0, views.thread(res, results.forum, results.user));
 					}
 				});
 			}
@@ -132,7 +131,7 @@ module.exports.list =  function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message);
 			else {
 				res = res.map(function(node) {
-					return module.exports.view(node, node.forumShortname, node.userEmail); 
+					return views.thread(node, node.forumShortname, node.userEmail); 
 				});
 				responceCallback(0, res);
 			}
@@ -194,7 +193,7 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message);
 			else {
 				res = res.map(function(node) {
-					return postModel.view(node, node.forumShortname, node.threadId, node.userEmail);
+					return views.post(node, node.forumShortname, node.threadId, node.userEmail);
 					/*{
 						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
 						"dislikes": node.dislikes,
@@ -309,22 +308,4 @@ module.exports.vote =  function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message);
 			responceCallback(0, dataObject);
 		});
-}
-
-module.exports.view = function (dataObject, forumData, userData) {
-	return {
-		"date": moment(dataObject.date).format("YYYY-MM-DD HH:mm:ss"),
-		"dislikes": dataObject.dislikes,
-		"forum": forumData,
-		"id": dataObject.id,
-		"isClosed": !!dataObject.isClosed,
-		"isDeleted": !!dataObject.isDeleted,
-		"likes": dataObject.likes,
-		"message": dataObject.message,
-		"points": dataObject.points,
-		"posts": dataObject.posts,
-		"slug": dataObject.slug,
-		"title": dataObject.title,
-		"user": userData || null
-	}
 }
