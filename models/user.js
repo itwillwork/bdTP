@@ -2,6 +2,8 @@ var connection = require('./../connection'),
 	helper = require('./../helper'),
 	moment = require('moment'),
 	async = require('async'),
+	//TODO убрать
+	postModel = require('./post'),
 	error = helper.errors;
 
 module.exports.create = function(dataObject, responceCallback) {
@@ -407,23 +409,9 @@ module.exports.listPosts = function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message);
 			else {
 				res = res.map(function(node){
-					return {
-						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
-						"dislikes": node.dislikes,
-						"forum": node.forumShortname,
-						"id": node.postId,
-						"isApproved": !!node.isApproved,
-						"isDeleted": !!node.isDeleted,
-						"isEdited": !!node.isEdited,
-						"isHighlighted": !!node.isHighlighted,
-						"isSpam": !!node.isSpam,
-						"likes": node.likes,
-						"message": node.message,
-						"parent": +node.parent || (node.parent !== '0' ? null: 0),
-						"points": node.points,
-						"thread": node.threadId,
-						"user": node.email
-					}
+					//чтобы работал единый стандарт вывода
+					node['id'] = node.postId;
+					return postModel.view(node, node.forumShortname, node.threadId, node.email);
 				});
 				responceCallback(0, res);
 			};

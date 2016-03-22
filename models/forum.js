@@ -53,12 +53,7 @@ module.exports.create = function(dataObject, responceCallback) {
 		if (err) responceCallback(err.code, err.message);
 		else {
 			results = results[3][0];
-			responceCallback(0, {
-				"id": results.id,
-				"name": results.name,
-				"short_name": results.shortname,
-				"user": results.userEmail 
-			});
+			responceCallback(0, module.exports.view(results, results.userEmail));
 		}
 	});
 }
@@ -98,12 +93,7 @@ module.exports.details = function(dataObject, responceCallback) {
 				userModel.moreDetails(userObject, userObject, userObject, 
 					wrapperFunctionForDetails(responceCallback, results));
 			} else {
-				responceCallback(0, {
-					"id": results.id,
-					"name": results.name,
-					"short_name": results.shortname,
-					"user": results.userEmail 
-				});
+				responceCallback(0, module.exports.view(results, results.userEmail));
 			}
 		}
 	});
@@ -117,12 +107,7 @@ module.exports.details = function(dataObject, responceCallback) {
 function wrapperFunctionForDetails(responceCallback, results) {
 	return function(code, info) {
 				// предполагается, что code === 0, так как юзер должен быть
-				responceCallback(code, {
-					"id": results.id,
-					"name": results.name,
-					"short_name": results.shortname,
-					"user": info
-				});
+				responceCallback(code, module.exports.view(results, info));
 			}
 }
 
@@ -210,12 +195,6 @@ function getSQLForListUsers(wherefrom) {
 	 * SELECT post.userEmail FROM forum JOIN post ON post.forumShortname = forum.shortname JOIN user ON user.email = post.userEmail where shortname = "forumwithsufficientlylargename" AND user.id >= 2;
 	 *   AND user.id >= 2;
 	 */
-	/*
-	wherefrom.forum
-	wherefrom.limit
-	wherefrom.order
-	wherefrom.since_id
-	*/
 	var sql = 'SELECT DISTINCT userEmail AS uEmail FROM post '; 
 
 	sql += ' JOIN user ON user.email = post.userEmail ';
@@ -288,4 +267,13 @@ module.exports.listUsers = function(dataObject, responceCallback) {
 			});
 		}
 	});
+}
+
+module.exports.view = function (dataObject, userData) {
+	return {
+		"id": dataObject.id,
+		"name": dataObject.name,
+		"short_name": dataObject.shortname,
+		"user": userData
+	}
 }

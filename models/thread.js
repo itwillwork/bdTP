@@ -138,43 +138,6 @@ module.exports.list =  function(dataObject, responceCallback) {
 			}
 		});
 }
-/**
- * переворачивает подмассивы с одинаковым началом materPath
- * @param  {[type]} res [description]
- * @return {[type]}     [description]
- */
-function descTreatment(res) {
-	if (res.length < 2) return;
-	var leftFlag = 0,
-		rightFlag = 0,
-		prefix = res[0].materPath.slice(0, 2);
-	for (var i = 0; i < res.length - 1; i++) {
-		if ( prefix !== res[i+1].materPath.slice(0, 2) ) {
-			rightFlag = i;
-			reversArray(res, leftFlag, rightFlag);
-			leftFlag = i + 1;
-			prefix = res[i+1].materPath.slice(0, 2);
-		}
-	}
-	rightFlag = i;
-	reversArray(res, leftFlag, rightFlag);
-}
-/**
- * переворачивает 
- * @param  {[type]} res       [description]
- * @param  {[type]} leftFlag  [description]
- * @param  {[type]} rightFlag [description]
- * @return {[type]}           [description]
- */
-function reversArray(res, leftFlag, rightFlag) {
-	if (leftFlag === rightFlag) return;
-	var k, j, buf;
-	for (k = leftFlag, j = rightFlag; k < j; ++k, --j ) {
-		buf = res[k];
-		res[k] = res[j];
-		res[j] = buf;
-	}
-}
 
 module.exports.listPosts =  function(dataObject, responceCallback) {
 	//собирание запроса
@@ -231,7 +194,8 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message);
 			else {
 				res = res.map(function(node) {
-					return {
+					return postModel.view(node, node.forumShortname, node.threadId, node.userEmail);
+					/*{
 						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
 						"dislikes": node.dislikes,
 						"forum": node.forumShortname,
@@ -248,7 +212,7 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 						"thread": node.threadId,
 						"user": node.userEmail
 						//"materPath": node.materPath
-					}
+					}*/
 				});
 				responceCallback(0, res);
 			}
