@@ -5,17 +5,15 @@ var connection = require('./../connection'),
 	error = helper.errors;
 
 module.exports.create = function(dataObject, responceCallback) {
+	//TODO можно оптимизировать убрав лищний select
 	if (!dataObject.username) dataObject.username = '';
 	if (!dataObject.about) dataObject.about = '';
 	if (!dataObject.name) dataObject.name = '';
+	if (!helper.requireFields(dataObject, ['email'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
+	}
 	async.series([
-		function(callback) {
-			if (!helper.requireFields(dataObject, ['email'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
-			}
-		},
 		function(callback) {
 			connection.db.query("INSERT INTO user (username, about, name, email, isAnonymous) values (?, ?, ?, ?, ?)", 
 				[dataObject.username, dataObject.about, dataObject.name, dataObject.email, !!(dataObject.isAnonymous)], 
@@ -40,7 +38,7 @@ module.exports.create = function(dataObject, responceCallback) {
 	], function(err, res) {
 		if (err) responceCallback(err.code, err.message);
 		else {
-			res = res[2][0];
+			res = res[1][0];
 			responceCallback(0, views.user(res, [], [], []));
 		}
 	});
@@ -54,245 +52,157 @@ module.exports.details = function(dataObject, responceCallback) {
 	 * 
 	 */
 	if (!helper.requireFields(dataObject, ['user'])) {
-		callback(error.requireFields, null);
-	} else {
-		module.exports.moreDetails(dataObject, dataObject, dataObject, responceCallback);
+		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
 	}
+	module.exports.moreDetails(dataObject, dataObject, dataObject, responceCallback);
 }
 
 module.exports.listFollowing = function(dataObject, responceCallback) {
-	async.series([
-		function (callback) {
-			if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
-				callback(error.semantic, null);
-			} else {
-				callback(null, null);
-			}	
-		},
-		function (callback) {
-			if (!helper.requireFields(dataObject, ['user'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
-			}
-		},
-		function (callback) {
-			connection.db.query( getSQLForFollowers('followerEmail', 'followeeEmail', dataObject),
-				[dataObject.user], 
-				function(err, res) {
-					if (err) err = helper.mysqlError(err.errno);
-					if (err) callback(err, null);
-					else callback(null, res);
-				});
-		}
-	], function(err, results) {
-		if (err) responceCallback(err.code, err.message);
-		else {
-			if (results[2].length === 0) {
-				responceCallback(0, []);
-				return;
-			}
-			//преобразуем обекты содержащие emailы в функции для асинхронного вызова
-			results = results[2].map( function(elem) {
-				return function (callback) {
-					var userEmail = {
-						user: elem.followerEmail
+	if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
+		responceCallback(error.semantic.code, error.semantic.message);
+		return;
+	}
+	if (!helper.requireFields(dataObject, ['user'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
+	} 
+	connection.db.query( getSQLForFollowers('followerEmail', 'followeeEmail', dataObject),
+		[dataObject.user], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			else {
+				if (res.length === 0) {
+					responceCallback(0, []);
+					return;
+				}
+				//преобразуем обекты содержащие emailы в функции для асинхронного вызова
+				res = res.map( function(elem) {
+					return function (callback) {
+						var userEmail = {
+							user: elem.followerEmail
+						}
+						module.exports.moreDetails(userEmail, userEmail, userEmail, 
+							function(code, res) {
+								callback(null, res);
+							});
 					}
-					module.exports.moreDetails(userEmail, userEmail, userEmail, 
-						function(code, res) {
-							callback(null, res);
-						});
-				}
-			});
-			//асинхронный запрос всех юзеров
-			async.parallel(results,
-			function (err, results){
-				if (err) responceCallback(err.code, err.message);
-				else {
-					responceCallback(0, results);
-				}
-			});	
-		}
-	}); 
+				});
+				//асинхронный запрос всех юзеров
+				async.parallel(res,
+				function (err, results){
+					if (err) responceCallback(err.code, err.message);
+					else {
+						responceCallback(0, results);
+					}
+				});	
+			}
+		});
 }
 
 module.exports.listFollowers = function(dataObject, responceCallback) {
-	async.series([
-		function (callback) {
-			if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
-				callback(error.semantic, null);
-			} else {
-				callback(null, null);
-			}	
-		},
-		function (callback) {
-			if (!helper.requireFields(dataObject, ['user'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
-			}
-		},
-		function (callback) {
-			connection.db.query( getSQLForFollowers('followeeEmail', 'followerEmail', dataObject),
-				[dataObject.user], 
-				function(err, res) {
-					if (err) err = helper.mysqlError(err.errno);
-					if (err) callback(err, null);
-					else callback(null, res);
-				});
-		}
-	], function(err, results) {
-		if (err) responceCallback(err.code, err.message);
-		else {
-			if (results[2].length === 0) {
-				responceCallback(0, []);
-				return;
-			}
-			//преобразуем обекты содержащие emailы в функции для асинхронного вызова
-			results = results[2].map( function(elem) {
-				return function (callback) {
-					var userEmail = {
-						user: elem.followeeEmail
+	if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
+		callback(error.semantic, null);
+		return;
+	}
+	if (!helper.requireFields(dataObject, ['user'])) {
+		callback(error.requireFields, null);
+		return;
+	}
+	connection.db.query( getSQLForFollowers('followeeEmail', 'followerEmail', dataObject),
+		[dataObject.user], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			else {
+				if (res.length === 0) {
+					responceCallback(0, []);
+					return;
+				}
+				//преобразуем обекты содержащие emailы в функции для асинхронного вызова
+				res = res.map( function(elem) {
+					return function (callback) {
+						var userEmail = {
+							user: elem.followeeEmail
+						}
+						module.exports.moreDetails(userEmail, userEmail, userEmail, 
+							function(code, res) {
+								callback(null, res);
+							});
 					}
-					module.exports.moreDetails(userEmail, userEmail, userEmail, 
-						function(code, res) {
-							callback(null, res);
-						});
-				}
-			});
-			//асинхронный запрос всех юзеров
-			async.parallel(results,
-			function (err, results){
-				if (err) responceCallback(err.code, err.message);
-				else {
-					responceCallback(0, results);
-				}
-			});	
-		}
-	}); 
+				});
+				//асинхронный запрос всех юзеров
+				async.parallel(res,
+				function (err, results){
+					if (err) responceCallback(err.code, err.message);
+					else {
+						responceCallback(0, results);
+					}
+				});	
+			}
+		});
 }
 
 module.exports.follow = function(dataObject, responceCallback) {
-	async.parallel([
-		function (callback) {
-			if (!helper.requireFields(dataObject, ['follower', 'followee'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
+	if (!helper.requireFields(dataObject, ['follower', 'followee'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+	} 
+	connection.db.query("SELECT COUNT(*) AS count FROM followers WHERE followerEmail = ? AND followeeEmail = ?",
+		[dataObject.follower, dataObject.followee], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			else {
+				if (res.count > 0) err = error.duplicateRecord;
 			}
-		},
-		function (callback){
-			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
-				[dataObject.follower], 
-				function(err, res) {
-					if (err) err = helper.mysqlError(err.errno);
-					else {
-						if (res[0].count == 0) err = error.norecord;
-					}
-					if (err) callback(err, null);
-					else callback(null, res);
-				});
-		},
-		function (callback){
-			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
-				[dataObject.followee], 
-				function(err, res) {
-					if (err) err = helper.mysqlError(err.errno);
-					else {
-						if (res[0].count == 0) err = error.norecord;
-					}
-					if (err) callback(err, null);
-					else callback(null, res);
-				});
-		},
-		function (callback){
-			connection.db.query("SELECT COUNT(*) AS count FROM followers WHERE followerEmail = ? AND followeeEmail = ?",
-				[dataObject.follower, dataObject.followee], 
-				function(err, res) {
-					if (err) err = helper.mysqlError(err.errno);
-					else {
-						if (res[0].count > 0) err = error.duplicateRecord;
-					}
-					if (err) callback(err, null);
-					else callback(null, res);
-				});
-		}
-	],
-	function(err, results){
-		if (err) responceCallback(err.code, err.message);
-		else {
-			//запрос проверен
-			connection.db.query("INSERT INTO followers (followerEmail, followeeEmail) values (?, ?)", 
-				[dataObject.follower, dataObject.followee], 
-				function(err, res) {
-					if (err) callback( helper.mysqlError(err.errno) , null);
-					else module.exports.details({user: dataObject.follower}, responceCallback);
-				});
-		}
+			if (err) responceCallback(err.code, err.message);
+			else {
+				//запрос проверен
+				connection.db.query("INSERT INTO followers (followerEmail, followeeEmail) values (?, ?)", 
+					[dataObject.follower, dataObject.followee], 
+					function(err, res) {
+						if (err) err = helper.mysqlError(err.errno);
+						if (err) responceCallback(err.code, err.message);
+						else module.exports.details({user: dataObject.follower}, responceCallback);
+					});
+			}
 	});
 }
 
 module.exports.unfollow = function(dataObject, responceCallback) {
-	//TODO можно попробовать убрать для оптимизации
-	async.parallel([
-		function (callback) {
-			if (!helper.requireFields(dataObject, ['follower', 'followee'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
-			}
-		},
-	],
-	function(err, results){
-		if (err) responceCallback(err.code, err.message);
-		else {
-			//запрос проверен
-			connection.db.query("DELETE FROM followers WHERE followerEmail = ? AND followeeEmail = ?", 
-				[dataObject.follower, dataObject.followee], 
-				function(err, res) {
-					if (err) err = helper.mysqlError(err.errno);
-					if (err) callback(err, null);
-					else module.exports.details({user: dataObject.follower}, responceCallback);
-				});
-		}
-	});
+	if (!helper.requireFields(dataObject, ['follower', 'followee'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+	}
+	connection.db.query("DELETE FROM followers WHERE followerEmail = ? AND followeeEmail = ?", 
+		[dataObject.follower, dataObject.followee], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno);
+			if (err) responceCallback(err.code, err.message);
+			else module.exports.details({user: dataObject.follower}, responceCallback);
+		});
 }
 
 module.exports.updateProfile = function(dataObject, responceCallback) {
-	//TODO можно попробовать убрать для оптимизации
-	async.parallel([
-		function (callback) {
-			if (!helper.requireFields(dataObject, ['about', 'user', 'name'])) {
-				callback(error.requireFields, null);
-			} else {
-				callback(null, null);
+	if (!helper.requireFields(dataObject, ['about', 'user', 'name'])) {
+		responceCallback(error.requireFields.code, error.requireFields.message);
+	}
+	connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
+		[dataObject.user], 
+		function(err, res) {
+			if (err) err = helper.mysqlError(err.errno)
+			else {
+				if (res.count == 0) err = error.norecord;
 			}
-		},
-		function (callback) {
-			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
-				[dataObject.user], 
-				function(err, res) {
-					if (err) err = helper.mysqlError(err.errno)
-					else {
-						if (res[0].count == 0) err = error.norecord;
-					}
-					if (err) callback(err, null);
-					else callback(null, res);
-				});
-		}
-	],
-	function(err, results){
-		if (err) responceCallback(err.code, err.message);
-		else {
-			//запрос проверен
-			connection.db.query("UPDATE user SET name = ?, about = ? WHERE email = ?", 
-				[dataObject.name, dataObject.about, dataObject.user], 
-				function(err, res) {
-					if (err) callback( helper.mysqlError(err.errno) , null);
-					else module.exports.details({user: dataObject.user}, responceCallback);
-				});
-		}
-	});
+			if (err) responceCallback(err.code, err.message);
+			else {
+				connection.db.query("UPDATE user SET name = ?, about = ? WHERE email = ?", 
+					[dataObject.name, dataObject.about, dataObject.user], 
+					function(err, res) {
+						if (err) responceCallback(err.code, err.message);
+						else module.exports.details({user: dataObject.user}, responceCallback);
+					});
+			}
+		});
 }
 
 /**
@@ -415,4 +325,3 @@ module.exports.listPosts = function(dataObject, responceCallback) {
 			};
 		});
 }
-
