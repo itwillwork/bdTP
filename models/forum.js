@@ -10,6 +10,7 @@ var connection = require('./../connection'),
 module.exports.create = function(dataObject, responceCallback) {
 	if (!helper.requireFields(dataObject, ['name', 'short_name', 'user'])) {
 		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
 	}
 	async.series([
 		function (callback) {

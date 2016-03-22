@@ -103,11 +103,11 @@ module.exports.listFollowing = function(dataObject, responceCallback) {
 
 module.exports.listFollowers = function(dataObject, responceCallback) {
 	if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
-		callback(error.semantic, null);
+		responceCallback(error.semantic.code, error.semantic.message);
 		return;
 	}
 	if (!helper.requireFields(dataObject, ['user'])) {
-		callback(error.requireFields, null);
+		responceCallback(error.requireFields.code, error.requireFields.message);
 		return;
 	}
 	connection.db.query( getSQLForFollowers('followeeEmail', 'followerEmail', dataObject),
@@ -147,6 +147,7 @@ module.exports.listFollowers = function(dataObject, responceCallback) {
 module.exports.follow = function(dataObject, responceCallback) {
 	if (!helper.requireFields(dataObject, ['follower', 'followee'])) {
 		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
 	} 
 	connection.db.query("SELECT COUNT(*) AS count FROM followers WHERE followerEmail = ? AND followeeEmail = ?",
 		[dataObject.follower, dataObject.followee], 
@@ -172,6 +173,7 @@ module.exports.follow = function(dataObject, responceCallback) {
 module.exports.unfollow = function(dataObject, responceCallback) {
 	if (!helper.requireFields(dataObject, ['follower', 'followee'])) {
 		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
 	}
 	connection.db.query("DELETE FROM followers WHERE followerEmail = ? AND followeeEmail = ?", 
 		[dataObject.follower, dataObject.followee], 
@@ -185,6 +187,7 @@ module.exports.unfollow = function(dataObject, responceCallback) {
 module.exports.updateProfile = function(dataObject, responceCallback) {
 	if (!helper.requireFields(dataObject, ['about', 'user', 'name'])) {
 		responceCallback(error.requireFields.code, error.requireFields.message);
+		return;
 	}
 	connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
 		[dataObject.user], 
