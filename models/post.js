@@ -91,20 +91,9 @@ module.exports.create =  function(dataObject, responceCallback) {
 	], function (err, results) {
 		if (err) responceCallback(err.code, err.message);
 		else {
-			responceCallback(0, {
-				"date": moment(dataObject.date).format("YYYY-MM-DD HH:mm:ss"),
-				"forum": dataObject.forum,
-				"id": results[0].insertId,
-				"isApproved": dataObject.isApproved,
-				"isDeleted": dataObject.isDeleted,
-				"isEdited": dataObject.isEdited,
-				"isHighlighted": dataObject.isHighlighted,
-				"isSpam": dataObject.isSpam,
-				"message": dataObject.message,
-				"parent": +dataObject.parent || (dataObject.parent !== '0' ? null: 0),
-				"thread": dataObject.thread,
-				"user": dataObject.user
-			});
+			var resp = module.exports.view(dataObject, dataObject.forum, dataObject.thread, dataObject.user);
+			resp.id = results[0].insertId
+			responceCallback(0, resp);
 		}
 	});
 }
@@ -174,26 +163,7 @@ module.exports.details =  function(dataObject, responceCallback) {
 						}
 					}, function (err, results) {
 						if (err) responceCallback(err.code, err.message);
-						else {
-								responceCallback(0, {
-									"date": moment(res.date).format("YYYY-MM-DD HH:mm:ss"),
-									"dislikes": res.dislikes,
-									"forum": results.forum,
-									"id": res.id,
-									"isApproved": !!res.isApproved,
-									"isDeleted": !!res.isDeleted,
-									"isEdited": !!res.isEdited,
-									"isHighlighted": !!res.isHighlighted,
-									"isSpam": !!res.isSpam,
-									"likes": res.likes,
-									"message": res.message,
-									"parent": +res.parent || (res.parent !== '0' ? null: 0),
-									"points": res.points,
-									"thread": results.thread,
-									"user": results.user
-								});
-							
-						}
+						else responceCallback(0, module.exports.view(res, results.forum, results.thread, results.user));
 					});
 				}
 			}
@@ -227,23 +197,7 @@ module.exports.list =  function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message) 
 			else {
 				res = res.map(function(node){
-					return {
-						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
-						"dislikes": node.dislikes,
-						"forum": node.forumShortname,
-						"id": node.id,
-						"isApproved": !!node.isApproved,
-						"isDeleted": !!node.isDeleted,
-						"isEdited": !!node.isEdited,
-						"isHighlighted": !!node.isHighlighted,
-						"isSpam": !!node.isSpam,
-						"likes": node.likes,
-						"message": node.message,
-						"parent": +node.parent || (node.parent !== '0' ? null: 0),
-						"points": node.points,
-						"thread": node.threadId,
-						"user": node.userEmail
-					}
+					return module.exports.view(node, node.forumShortname, node.threadId, node.userEmail);
 				});
 				responceCallback(0, res);
 			}
@@ -348,4 +302,25 @@ module.exports.vote =  function(dataObject, responceCallback) {
 				module.exports.details(dataObject, responceCallback);	
 			}
 		});
+}
+
+
+module.exports.view = function (dataObject, forumData, threadData, userData) {
+	return {
+		"date": moment(dataObject.date).format("YYYY-MM-DD HH:mm:ss"),
+		"dislikes": dataObject.dislikes,
+		"forum": forumData,
+		"id": dataObject.id,
+		"isApproved": !!dataObject.isApproved,
+		"isDeleted": !!dataObject.isDeleted,
+		"isEdited": !!dataObject.isEdited,
+		"isHighlighted": !!dataObject.isHighlighted,
+		"isSpam": !!dataObject.isSpam,
+		"likes": dataObject.likes,
+		"message": dataObject.message,
+		"parent": +dataObject.parent || (dataObject.parent !== '0' ? null: 0),
+		"points": dataObject.points,
+		"thread": threadData,
+		"user": userData
+	}
 }

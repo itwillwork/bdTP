@@ -4,6 +4,7 @@ var connection = require('./../connection'),
 	moment = require('moment'),
 	userModel = require('./user'),
 	forumModel = require('./forum'),
+	postModel = require('./post'),
 	error = helper.errors;
 
 module.exports.close =  function(dataObject, responceCallback) {
@@ -39,17 +40,9 @@ module.exports.create =  function(dataObject, responceCallback) {
 	function(err, results){
 		if (err) responceCallback(err.code, err.message);
 		else {
-			responceCallback(0, {
-				'date': moment(dataObject.date).format("YYYY-MM-DD HH:mm:ss"),
-				'forum': dataObject.forum,
-				'id': results[1].insertId,
-				'isClosed': !!dataObject.isClosed,
-				'isDeleted': !!dataObject.isDeleted,
-				'message': dataObject.message,
-				'slug': dataObject.slug,
-				'title': dataObject.title,
-				'user': dataObject.user 
-			});
+			var resp = module.exports.view(dataObject, dataObject.forum, dataObject.user);
+			resp.id = results[1].insertId;
+			responceCallback(0, resp);
 		}
 	});
 }
@@ -187,125 +180,49 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 	//собирание запроса
 	var sql;
 	if(!dataObject.hasOwnProperty('sort')) dataObject.sort = 'flat';
-	
 	if (dataObject.order !== 'asc') {
 		dataObject.order = 'desc';
 	}
-
-	if ((dataObject.sort === 'tree') && (dataObject.order === 'desc')) {
-		/*
-		select materPath from post where threadId = 1 and materPath >= 
-		(
-		SELECT LPAD(materPath, 2, '') as prefix from post 
-		where threadId = 1 order by materPath desc limit 9, 1
-			) 
-		order by materPath desc;
-		 */
-		/*
-		SELECT MAX(prefix) from (SELECT LPAD(materPath, 2, '') as prefix  from post  where threadId = 1 and date >= "2014-01-01 00:00:00"  order by materPath asc limit 5) as tbl;
-		 */
-		/*
-		select materPath from post where threadId = 1 and materPath >= (
-			SELECT MAX(prefix) from (
-				SELECT LPAD(materPath, 2, '') as prefix  
-				from post  
-				where threadId = 1 and date >= "2014-01-01 00:00:00"  
-				order by materPath asc limit 5
-			) as tbl;
-		) order by materPath desc;
-		 */
-		sql = ' select * from post where threadId = ' + dataObject.thread + ' and ';
-		sql += ' materPath >= (';
-						if (dataObject.hasOwnProperty('limit')) {
-							sql += 'SELECT MAX(prfx) from ( ' +
-									' SELECT LPAD(materPath, 2, "") as prfx ' + 
-									' from post ' + 
-									' where threadId = "' + dataObject.thread + '" '; 
-							if (dataObject.hasOwnProperty('since')) {
-								sql += ' and date >= "' + dataObject.since + '" ';  
-							}
-							sql += ' order by materPath asc limit ' + dataObject.limit + ' ';
-							sql += ') as tbl ';
-						} else {
-							sql += ' SELECT LPAD(materPath, 2, "") ' + 
-									' from post ' + 
-									' where threadId = ' + dataObject.thread; 
-							if (dataObject.hasOwnProperty('since')) {
-								sql += ' and date >= "' + dataObject.since + '" ';
-							}
-							sql += ' order by materPath asc ';
-							sql += 'limit 1';
-						}
-		sql += ' )'; 
-		if (dataObject.hasOwnProperty('since')) {
-			sql += ' and date >= "' + dataObject.since + '" ';
-		}
-		sql += ' order by materPath desc; ';
-		connection.db.query(sql, 
-			[], 
-		function(err, res) {
-			if (err) err = helper.mysqlError(err.errno);
-			if (err) responceCallback(err.code, err.message);
-			else {
-				descTreatment(res);
-				if (dataObject.limit) {
-					res.length = dataObject.limit;
-				}
-				res = res.map(function(node) {
-					return {
-						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
-						"dislikes": node.dislikes,
-						"forum": node.forumShortname,
-						"id": node.id,
-						"isApproved": !!node.isApproved,
-						"isDeleted": !!node.isDeleted,
-						"isEdited": !!node.isEdited,
-						"isHighlighted": !!node.isHighlighted,
-						"isSpam": !!node.isSpam,
-						"likes": node.likes,
-						"message": node.message,
-						"parent": +node.parent || (node.parent !== '0' ? null: 0),
-						"points": node.points,
-						"thread": node.threadId,
-						"user": node.userEmail
-						//"materPath": node.materPath
-					}
-				});
-				responceCallback(0, res);
-			}
-		});
-		
-		return;
-	}
-
-	sql = ' SELECT * FROM post ';
-
-	sql += ' WHERE (threadId = "' + dataObject.thread + '") ';
-	
+	sql = 'SELECT * FROM post WHERE (threadId = "' + dataObject.thread + '") ';
 	if (dataObject.since) sql += ' AND (date >= "' + dataObject.since + '") ';
-	
-	switch (dataObject.sort) {
-		case 'flat': {
-				sql += ' ORDER BY date ' + dataObject.order;
-				if (dataObject.limit) {
-					sql += ' LIMIT ' + dataObject.limit;
-				}
+	switch (dataObject.sort + '_' + dataObject.order) {
+		case 'flat_asc':
+			sql += ' ORDER BY date ASC';
+			if (dataObject.limit) {
+				sql += ' LIMIT ' + dataObject.limit;
 			}
-			break;
-		case 'tree': {
-				sql += ' ORDER BY materPath ' + dataObject.order;
-				if (dataObject.limit) {
-					sql += ' LIMIT ' + dataObject.limit;
-				}
-			} 
-			break;
-		case 'parent_tree': {
-				var tmp = String( dataObject.limit);
-				while (tmp.length < 2) tmp = '0' + tmp;
-				sql += ' AND (materPath < "' + tmp + '") ';
-				sql += ' ORDER BY materPath ' + dataObject.order;
-			} 
-			break;
+		break;
+		case 'flat_desc':
+			sql += ' ORDER BY date DESC';
+			if (dataObject.limit) {
+				sql += ' LIMIT ' + dataObject.limit;
+			}
+		break;
+		case 'tree_asc':
+			sql += ' ORDER BY materPath ASC';
+			if (dataObject.limit) {
+				sql += ' LIMIT ' + dataObject.limit;
+			}
+		break;
+		case 'tree_desc':
+			sql += ' order by LPAD(materPath, 2, "") DESC, materPath ASC';
+			//sql += ' order by LPAD(materPath, 2, "") DESC, materPath DESC';
+			if (dataObject.limit) {
+				sql += ' LIMIT ' + dataObject.limit;
+			}
+		break;
+		case 'parent_tree_asc':
+			var tmp = String( dataObject.limit);
+			while (tmp.length < 2) tmp = '0' + tmp;
+			sql += ' AND (materPath < "' + tmp + '") ';
+			sql += ' ORDER BY materPath ASC';
+		break;
+		case 'parent_tree_desc':
+			var tmp = String( dataObject.limit);
+			while (tmp.length < 2) tmp = '0' + tmp;
+			sql += ' AND (materPath < "' + tmp + '") ';
+			sql += ' order by LPAD(materPath, 2, "") DESC, materPath ASC';
+		break;
 	}
 	//запрос
 	connection.db.query(sql, [], 
@@ -313,12 +230,6 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
 			else {
-				//жуткий костыль
-				
-				if ((dataObject.sort === 'parent_tree') && (dataObject.order === 'desc')) {
-					descTreatment(res);	
-				}
-				
 				res = res.map(function(node) {
 					return {
 						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
