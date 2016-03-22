@@ -110,21 +110,7 @@ module.exports.details =  function(dataObject, responceCallback) {
 				}, function (err, results) {
 					if (err) responceCallback(err.code, err.message);
 					else {
-						responceCallback(0, {
-							"date": moment(res.date).format("YYYY-MM-DD HH:mm:ss"),
-							"dislikes": res.dislikes,
-							"forum": results.forum,
-							"id": res.id,
-							"isClosed": !!res.isClosed,
-							"isDeleted": !!res.isDeleted,
-							"likes": res.likes,
-							"message": res.message,
-							"points": res.points,
-							"posts": res.posts,
-							"slug": res.slug,
-							"title": res.title,
-							"user": results.user
-						});
+						responceCallback(0, module.exports.view(res, results.forum, results.user));
 					}
 				});
 			}
@@ -153,21 +139,7 @@ module.exports.list =  function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message);
 			else {
 				res = res.map(function(node) {
-					return {
-						"date": moment(node.date).format("YYYY-MM-DD HH:mm:ss"),
-						"dislikes": node.dislikes,
-						"forum": node.forumShortname,
-						"id": node.id,
-						"isClosed": !!node.isClosed,
-						"isDeleted": !!node.isDeleted,
-						"likes": node.likes,
-						"message": node.message,
-						"points": node.points,
-						"posts": node.posts,
-						"slug": node.slug,
-						"title": node.title,
-						"user": node.userEmail || null
-					}
+					return module.exports.view(node, node.forumShortname, node.userEmail); 
 				});
 				responceCallback(0, res);
 			}
@@ -462,4 +434,22 @@ module.exports.vote =  function(dataObject, responceCallback) {
 			if (err) responceCallback(err.code, err.message);
 			responceCallback(0, dataObject);
 		});
+}
+
+module.exports.view = function (dataObject, forumData, userData) {
+	return {
+		"date": moment(dataObject.date).format("YYYY-MM-DD HH:mm:ss"),
+		"dislikes": dataObject.dislikes,
+		"forum": forumData,
+		"id": dataObject.id,
+		"isClosed": !!dataObject.isClosed,
+		"isDeleted": !!dataObject.isDeleted,
+		"likes": dataObject.likes,
+		"message": dataObject.message,
+		"points": dataObject.points,
+		"posts": dataObject.posts,
+		"slug": dataObject.slug,
+		"title": dataObject.title,
+		"user": userData || null
+	}
 }
