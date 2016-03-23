@@ -19,7 +19,7 @@ sys.path.append('../doc')
 import tools
 from doc_conf import DISCR
 
-CONFIG_PATH = '/home/edgar/test.conf'
+CONFIG_PATH = '/home/tpadmin/bdTP/test.conf'
 settings = tools.Configuration(CONFIG_PATH).get_section('func_test')
 
 class TestLog(object):

@@ -14,7 +14,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 sys.path.append('../lib')
 import tools
 
-CONFIG_PATH = '/usr/local/etc/test.conf'
+CONFIG_PATH = '/home/tpadmin/bdTP/test.conf'
 settings = tools.Configuration(CONFIG_PATH).get_section('perf_test')
 
 class TestLog(object):
