@@ -20,10 +20,10 @@ app.post(PREFIX_URL + 'clear/', function(req, res) {
     modelGeneral.clear( responceCallback(res) );
 });
 
-app.post(PREFIX_URL + 'status', function(req, res) {
+app.get(PREFIX_URL + 'status', function(req, res) {
     modelGeneral.status( responceCallback(res) );
 });
 
-app.listen(80, function() {
-    console.log('Все ОК. Слушаем на порту 80.');
+app.listen(8080, function() {
+    console.log('Все ОК. Слушаем на порту 8080.');
 });
