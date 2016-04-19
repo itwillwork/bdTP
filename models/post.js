@@ -8,7 +8,7 @@ var connection = require('./../connection'),
 	error = helper.errors;
 
 module.exports.create =  function(dataObject, responceCallback) {
-	if(!dataObject.hasOwnProperty('parent')) dataObject.parent = ''; 
+	if(!dataObject.hasOwnProperty('parent')) dataObject.parent = '';
 	else if (dataObject.parent === null) dataObject.parent = '';
 	if(!dataObject.hasOwnProperty('isSpam')) dataObject.isSpam = false;
 	if(!dataObject.hasOwnProperty('isApproved')) dataObject.isApproved = false;
@@ -25,7 +25,7 @@ module.exports.create =  function(dataObject, responceCallback) {
 	}
 	async.parallel([
 		function (callback) {
-			
+
 			/**
 			 * Примерный алгоритм Material Path
 			 * если нет предка, надо найти максимальный
@@ -33,10 +33,10 @@ module.exports.create =  function(dataObject, responceCallback) {
 			 * если предок есть, надо найти максимум по последнему уровню вложенности
 			 *
 			 * для MaterPath использую 36 систему счисления и 2 позиции в строке для уровня вложенности
-			 * 
+			 *
 			 */
 			//получаем MaterPath родителя
-			connection.db.query("SELECT materPath FROM post WHERE (id = ?) AND (threadId = ?);", 
+			connection.db.query("SELECT materPath FROM post WHERE (id = ?) AND (threadId = ?);",
 				[dataObject.parent, dataObject.thread],
 				function(err, res) {
 					if (err) callback( helper.mysqlError(err.errno) , null);
@@ -48,8 +48,8 @@ module.exports.create =  function(dataObject, responceCallback) {
 							parentMathPath = res[0].materPath;
 						}
 						//максимальный номер ребенка по маске из родителя
-						connection.db.query('SELECT MAX(materPath) AS max FROM post WHERE (materPath LIKE ?) AND (threadId = ?) ORDER BY materPath', 
-							[parentMathPath + '__', dataObject.thread], 
+						connection.db.query('SELECT MAX(materPath) AS max FROM post WHERE (materPath LIKE ?) AND (threadId = ?) ORDER BY materPath',
+							[parentMathPath + '__', dataObject.thread],
 							function(err, res) {
 								if (err) callback( helper.mysqlError(err.errno) , null);
 								else {
@@ -68,9 +68,9 @@ module.exports.create =  function(dataObject, responceCallback) {
 										newMaterPath = parentMathPath + tmp;
 									}
 									//записываем все что получилось
-									connection.db.query("INSERT INTO post (isApproved, isDeleted, isEdited, isHighlighted, isSpam, message, parent, threadId, date, forumShortname, userEmail, materPath) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", 
+									connection.db.query("INSERT INTO post (isApproved, isDeleted, isEdited, isHighlighted, isSpam, message, parent, threadId, date, forumShortname, userEmail, materPath) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
 										[dataObject.isApproved, dataObject.isDeleted, dataObject.isEdited, dataObject.isHighlighted, dataObject.isSpam, dataObject.message, dataObject.parent,
-										dataObject.thread, dataObject.date, dataObject.forum, dataObject.user, newMaterPath], 
+										dataObject.thread, dataObject.date, dataObject.forum, dataObject.user, newMaterPath],
 										function(err, res) {
 											if (err) callback( helper.mysqlError(err.errno) , null);
 											else callback(null, res);
@@ -81,8 +81,8 @@ module.exports.create =  function(dataObject, responceCallback) {
 				});
 		},
 		function (callback) {
-			connection.db.query('UPDATE thread SET posts = posts + 1 WHERE id = ?;', 
-				[dataObject.thread], 
+			connection.db.query('UPDATE thread SET posts = posts + 1 WHERE id = ?;',
+				[dataObject.thread],
 				function(err, res) {
 					if (err) callback( helper.mysqlError(err.errno) , null);
 					else callback(null, res);
@@ -103,8 +103,8 @@ module.exports.details =  function(dataObject, responceCallback) {
 		responceCallback(error.requireFields.code, error.requireFields.message);
 		return;
 	}
-	connection.db.query('SELECT * FROM post WHERE id = ?', 
-		[dataObject.post], 
+	connection.db.query('SELECT * FROM post WHERE id = ?',
+		[dataObject.post],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -170,14 +170,14 @@ module.exports.details =  function(dataObject, responceCallback) {
 function getSQLforList(dataObject) {
 	//проверить поля
 	sql = "SELECT date, dislikes, forumShortname, id, isApproved, isDeleted, isEdited, isHighlighted, isSpam, likes, message, parent, points, threadId, userEmail FROM post "
-	
+
 	if (dataObject.forum) sql += 'WHERE (forumShortname = "' + dataObject.forum + '") ';
 	if (dataObject.thread) sql += 'WHERE (threadId = "' + dataObject.thread + '") ';
 
 	if (dataObject.since) {
 		sql += ' AND (date >= "' + dataObject.since + '") ';
 	}
-	
+
 	if (dataObject.order !== 'asc') {
 		dataObject.order = 'desc';
 	}
@@ -189,10 +189,10 @@ function getSQLforList(dataObject) {
 	return sql;
 }
 module.exports.list =  function(dataObject, responceCallback) {
-	connection.db.query(getSQLforList(dataObject), [], 
+	connection.db.query(getSQLforList(dataObject), [],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
-			if (err) responceCallback(err.code, err.message) 
+			if (err) responceCallback(err.code, err.message)
 			else {
 				res = res.map(function(node){
 					return views.post(node, node.forumShortname, node.threadId, node.userEmail);
@@ -203,31 +203,31 @@ module.exports.list =  function(dataObject, responceCallback) {
 }
 
 module.exports.remove =  function(dataObject, responceCallback) {
-	connection.db.query('SELECT threadId FROM post WHERE id = ?;', 
-		[dataObject.post], 
+	connection.db.query('SELECT threadId FROM post WHERE id = ?;',
+		[dataObject.post],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
-			else {			
+			else {
 				if (res.length == 0) err = helper.norecord;
 			}
-			if (err) responceCallback(err.code, err.message) 
+			if (err) responceCallback(err.code, err.message)
 			else {
 				async.parallel([
 					function (callback) {
-						connection.db.query('UPDATE post SET isDeleted = true WHERE id = ?;', 
-							[dataObject.post], 
+						connection.db.query('UPDATE post SET isDeleted = true WHERE id = ?;',
+							[dataObject.post],
 							function(err, res) {
 								if (err) err = helper.mysqlError(err.errno);
-								if (err) callback(err, null) 
+								if (err) callback(err, null)
 								else callback (null, res);
 							});
-					}, 
+					},
 					function (callback) {
-						connection.db.query('UPDATE thread SET posts = posts - 1 WHERE id = ?;', 
-							[res[0].threadId], 
+						connection.db.query('UPDATE thread SET posts = posts - 1 WHERE id = ?;',
+							[res[0].threadId],
 							function(err, res) {
 								if (err) err = helper.mysqlError(err.errno);
-								if (err) callback(err, null) 
+								if (err) callback(err, null)
 								else callback (null, res);
 							});
 					}
@@ -238,35 +238,35 @@ module.exports.remove =  function(dataObject, responceCallback) {
 						});
 				});
 			}
-		});	
+		});
 }
 
 module.exports.restore =  function(dataObject, responceCallback) {
-	connection.db.query('SELECT threadId FROM post WHERE id = ?;', 
-		[dataObject.post], 
+	connection.db.query('SELECT threadId FROM post WHERE id = ?;',
+		[dataObject.post],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
-			else {			
+			else {
 				if (res.length == 0) err = helper.norecord;
 			}
-			if (err) responceCallback(err.code, err.message) 
+			if (err) responceCallback(err.code, err.message)
 			else {
 				async.parallel([
 					function (callback) {
-						connection.db.query('UPDATE post SET isDeleted = false WHERE id = ?;', 
-							[dataObject.post], 
+						connection.db.query('UPDATE post SET isDeleted = false WHERE id = ?;',
+							[dataObject.post],
 							function(err, res) {
 								if (err) err = helper.mysqlError(err.errno);
-								if (err) callback(err, null) 
+								if (err) callback(err, null)
 								else callback (null, res);
 							});
-					}, 
+					},
 					function (callback) {
-						connection.db.query('UPDATE thread SET posts = posts + 1 WHERE id = ?;', 
-							[res[0].threadId], 
+						connection.db.query('UPDATE thread SET posts = posts + 1 WHERE id = ?;',
+							[res[0].threadId],
 							function(err, res) {
 								if (err) err = helper.mysqlError(err.errno);
-								if (err) callback(err, null) 
+								if (err) callback(err, null)
 								else callback (null, res);
 							});
 					}
@@ -277,15 +277,15 @@ module.exports.restore =  function(dataObject, responceCallback) {
 						});
 				});
 			}
-		});	
+		});
 }
 
 module.exports.update =  function(dataObject, responceCallback) {
-	connection.db.query('UPDATE post SET message = ? WHERE id = ?;', 
-		[dataObject.message, dataObject.post], 
+	connection.db.query('UPDATE post SET message = ? WHERE id = ?;',
+		[dataObject.message, dataObject.post],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
-			if (err) responceCallback(err.code, err.message) 
+			if (err) responceCallback(err.code, err.message)
 			else {
 				module.exports.details(dataObject, responceCallback);
 			}
@@ -293,13 +293,13 @@ module.exports.update =  function(dataObject, responceCallback) {
 }
 
 module.exports.vote =  function(dataObject, responceCallback) {
-	connection.db.query('UPDATE post SET points = points + ?,  likes = likes + IF(? = 1, 1, 0),  dislikes = dislikes + IF(? = -1, 1, 0) WHERE id = ?;', 
-		[dataObject.vote, dataObject.vote, dataObject.vote, dataObject.post], 
+	connection.db.query('UPDATE post SET points = points + ?,  likes = likes + IF(? = 1, 1, 0),  dislikes = dislikes + IF(? = -1, 1, 0) WHERE id = ?;',
+		[dataObject.vote, dataObject.vote, dataObject.vote, dataObject.post],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
 			else {
-				module.exports.details(dataObject, responceCallback);	
+				module.exports.details(dataObject, responceCallback);
 			}
 		});
 }

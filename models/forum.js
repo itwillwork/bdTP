@@ -15,7 +15,7 @@ module.exports.create = function(dataObject, responceCallback) {
 	async.series([
 		function (callback) {
 			connection.db.query("SELECT COUNT(*) AS count FROM user WHERE email = ?",
-				[dataObject.user], 
+				[dataObject.user],
 				function(err, res) {
 					if (err) err = helper.mysqlError(err.errno);
 					else {
@@ -26,8 +26,8 @@ module.exports.create = function(dataObject, responceCallback) {
 				});
 		},
 		function (callback) {
-			connection.db.query("INSERT INTO forum (name, shortname, userEmail) values (?, ?, ?)", 
-				[dataObject.name, dataObject.short_name, dataObject.user], 
+			connection.db.query("INSERT INTO forum (name, shortname, userEmail) values (?, ?, ?)",
+				[dataObject.name, dataObject.short_name, dataObject.user],
 				function(err, res) {
 					if (err) callback( helper.mysqlError(err.errno) , null);
 					else callback(null, null);
@@ -35,7 +35,7 @@ module.exports.create = function(dataObject, responceCallback) {
 		},
 		function (callback) {
 			connection.db.query('SELECT * FROM forum WHERE shortname = ?',
-				[dataObject.short_name], 
+				[dataObject.short_name],
 				function(err, res) {
 					if (err) err = helper.mysqlError(err.errno);
 					else {
@@ -67,7 +67,7 @@ module.exports.details = function(dataObject, responceCallback) {
 	}
 
 	connection.db.query('SELECT * FROM forum WHERE shortname = ?',
-		[dataObject.forum], 
+		[dataObject.forum],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			else {
@@ -80,7 +80,7 @@ module.exports.details = function(dataObject, responceCallback) {
 					var userObject = {
 						user: res.userEmail
 					}
-					userModel.moreDetails(userObject, userObject, userObject, 
+					userModel.moreDetails(userObject, userObject, userObject,
 						wrapperFunctionForDetails(responceCallback, res));
 				} else {
 					responceCallback(0, views.forum(res, res.userEmail));
@@ -91,7 +91,7 @@ module.exports.details = function(dataObject, responceCallback) {
 /**
  * Функция обертка для дозаписи юзера в ответ
  * @param  {Function} responceCallback
- * @param  {Object} results 
+ * @param  {Object} results
  * @return {Function} callback for userModel.moreDetails
  */
 function wrapperFunctionForDetails(responceCallback, results) {
@@ -116,7 +116,7 @@ function getSQLforListPosts(dataObject) {
 }
 
 module.exports.listPosts = function(dataObject, responceCallback) {
-	connection.db.query(getSQLforListPosts(dataObject), [], 
+	connection.db.query(getSQLforListPosts(dataObject), [],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -154,7 +154,7 @@ function getSQLforlistThreads(dataObject) {
 }
 
 module.exports.listThreads = function(dataObject, responceCallback) {
-	connection.db.query(getSQLforlistThreads(dataObject), [], 
+	connection.db.query(getSQLforlistThreads(dataObject), [],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -182,14 +182,14 @@ function getSQLForListUsers(wherefrom) {
 	 * SELECT post.userEmail FROM forum JOIN post ON post.forumShortname = forum.shortname JOIN user ON user.email = post.userEmail where shortname = "forumwithsufficientlylargename" AND user.id >= 2;
 	 *   AND user.id >= 2;
 	 */
-	var sql = 'SELECT DISTINCT userEmail AS uEmail FROM post '; 
+	var sql = 'SELECT DISTINCT userEmail AS uEmail FROM post ';
 
 	sql += ' JOIN user ON user.email = post.userEmail ';
-	
+
 	sql += ' WHERE isDeleted = false ';
 	sql += ' AND post.forumShortname = "' + wherefrom.forum + '" ';
 	if (wherefrom.since_id) {
-		sql += ' AND user.id >= ' + wherefrom.since_id;	
+		sql += ' AND user.id >= ' + wherefrom.since_id;
 	}
 	if (wherefrom.order !== 'asc') {
 		wherefrom.order = 'desc';
@@ -199,7 +199,7 @@ function getSQLForListUsers(wherefrom) {
 		sql += ' LIMIT ' + wherefrom.limit;
 	}
 	return sql;
-} 
+}
 
 module.exports.listUsers = function(dataObject, responceCallback) {
 	if (!helper.possibleValues([dataObject.order], [['desc', 'asc']])) {
@@ -225,7 +225,7 @@ module.exports.listUsers = function(dataObject, responceCallback) {
 						var userObject = {
 							user: elem.uEmail
 						}
-						userModel.moreDetails(userObject, userObject, userObject, 
+						userModel.moreDetails(userObject, userObject, userObject,
 							function(code, res) {
 								callback(null, res);
 							});

@@ -1,12 +1,12 @@
 /**
  * Проверяет наличие и наполненность указанных свойств в объекте
- * @param  {[Object]} dataObject     
- * @param  {[Array]} requriedFields 
+ * @param  {[Object]} dataObject
+ * @param  {[Array]} requriedFields
  * @return {Boolean}
  */
 module.exports.requireFields = function (dataObject, requriedFields) {
 	for (var i = 0; i < requriedFields.length; i++) {
-		if ((dataObject.hasOwnProperty(requriedFields[i])) && 
+		if ((dataObject.hasOwnProperty(requriedFields[i])) &&
 			(dataObject[requriedFields[i]] === null)) {
 			return false;
 		}
@@ -32,8 +32,8 @@ module.exports.possibleValuesForVarieble = function (dataObject, requriedFields)
 };
 /**
  * Проверяет подходит ли значение под возможные варинаты
- * @param  {Array} dataObject 
- * @param  {Array} possibleValues 
+ * @param  {Array} dataObject
+ * @param  {Array} possibleValues
  * @return {Boolean}
  */
 module.exports.possibleValues = function (dataObject, possibleValues) {
@@ -49,7 +49,7 @@ module.exports.possibleValues = function (dataObject, possibleValues) {
 }
 /**
  * Проверяет содержится ли значение value в массиве dataArray
- * @param  {String}  value     
+ * @param  {String}  value
  * @param  {Array}  dataArray
  * @return {Boolean}
  */
@@ -57,7 +57,7 @@ module.exports.isEntry = function (value, dataArray) {
 	//на тот случай если dataArray не окажется массивом
 	//преобразуем в массив
 	if (!(dataArray instanceof Array)) dataArray = [dataArray];
-	
+
 	for (var i = 0; i < dataArray.length; i++) {
 		if (value === dataArray[i]) return true;
 	}
@@ -103,7 +103,7 @@ module.exports.errors = {
  */
 module.exports.mysqlError = function (errCode) {
 	switch(errCode) {
-		case 1062:  
+		case 1062:
 			return this.errors.duplicateRecord;
 			break;
 		case 1064:

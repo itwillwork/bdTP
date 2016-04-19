@@ -8,12 +8,8 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     responceCallback = require('./responce'),
     PREFIX_URL = '/db/api/';
-try {
-    app.use(bodyParser.json());
-} catch (err) {
-    
-}
 
+app.use(bodyParser.json());
 
 app.use(PREFIX_URL + 'user', routerUser);
 app.use(PREFIX_URL + 'post', routerPost);
@@ -31,4 +27,3 @@ app.post(PREFIX_URL + 'status', function(req, res) {
 app.listen(80, function() {
     console.log('Все ОК. Слушаем на порту 80.');
 });
-

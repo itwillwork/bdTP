@@ -7,8 +7,8 @@ var connection = require('./../connection'),
 	error = helper.errors;
 
 module.exports.close =  function(dataObject, responceCallback) {
-	connection.db.query('UPDATE thread SET isClosed = true WHERE id = ?', 
-		[dataObject.thread], 
+	connection.db.query('UPDATE thread SET isClosed = true WHERE id = ?',
+		[dataObject.thread],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -23,8 +23,8 @@ module.exports.create =  function(dataObject, responceCallback) {
 		return;
 	}
 	connection.db.query('INSERT INTO thread (forumShortname, title, isClosed, userEmail, date, message, slug, isDeleted) ' +
-									'values (?, ?, ?, ?, ?, ?, ?, ?)', 
-		[dataObject.forum, dataObject.title, dataObject.isClosed, dataObject.user, dataObject.date, dataObject.message, dataObject.slug, dataObject.isDeleted], 
+									'values (?, ?, ?, ?, ?, ?, ?, ?)',
+		[dataObject.forum, dataObject.title, dataObject.isClosed, dataObject.user, dataObject.date, dataObject.message, dataObject.slug, dataObject.isDeleted],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -48,8 +48,8 @@ module.exports.details =  function(dataObject, responceCallback) {
 		responceCallback(error.semantic.code, error.semantic.message);
 		return;
 	}
-	connection.db.query('SELECT * FROM thread WHERE id = ?', 
-		[dataObject.thread], 
+	connection.db.query('SELECT * FROM thread WHERE id = ?',
+		[dataObject.thread],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			else {
@@ -110,20 +110,20 @@ function getSQLforList(dataObject) {
 		dataObject.order = 'desc';
 	}
 	sql += ' ORDER BY thread.date ' + dataObject.order;
-	
+
 	if (dataObject.limit) {
 		sql += ' LIMIT ' + dataObject.limit;
 	}
 	return sql;
 }
 module.exports.list =  function(dataObject, responceCallback) {
-	connection.db.query( getSQLforList(dataObject), [], 
+	connection.db.query( getSQLforList(dataObject), [],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
 			else {
 				res = res.map(function(node) {
-					return views.thread(node, node.forumShortname, node.userEmail); 
+					return views.thread(node, node.forumShortname, node.userEmail);
 				});
 				responceCallback(0, res);
 			}
@@ -178,7 +178,7 @@ function getSQLforListPosts(dataObject) {
 	return sql;
 }
 module.exports.listPosts =  function(dataObject, responceCallback) {
-	connection.db.query( getSQLforListPosts(dataObject), [], 
+	connection.db.query( getSQLforListPosts(dataObject), [],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -193,8 +193,8 @@ module.exports.listPosts =  function(dataObject, responceCallback) {
 }
 
 module.exports.open =  function(dataObject, responceCallback) {
-	connection.db.query('UPDATE thread SET isClosed = false WHERE id = ?', 
-		[dataObject.thread], 
+	connection.db.query('UPDATE thread SET isClosed = false WHERE id = ?',
+		[dataObject.thread],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -203,14 +203,14 @@ module.exports.open =  function(dataObject, responceCallback) {
 }
 
 module.exports.remove =  function(dataObject, responceCallback) {
-	connection.db.query('UPDATE post SET isDeleted = true WHERE threadId = ?', 
-				[dataObject.thread], 
+	connection.db.query('UPDATE post SET isDeleted = true WHERE threadId = ?',
+				[dataObject.thread],
 				function(err, res) {
 					if (err) err = helper.mysqlError(err.errno);
 					if (err) responceCallback(err.code, err.message);
 					else {
-						connection.db.query('UPDATE thread SET isDeleted = true, posts = posts - ? WHERE id = ?', 
-							[res.changedRows, dataObject.thread], 
+						connection.db.query('UPDATE thread SET isDeleted = true, posts = posts - ? WHERE id = ?',
+							[res.changedRows, dataObject.thread],
 							function(err, res) {
 								if (err) err = helper.mysqlError(err.errno);
 								if (err) responceCallback(err.code, err.message);
@@ -223,14 +223,14 @@ module.exports.remove =  function(dataObject, responceCallback) {
 }
 
 module.exports.restore =  function(dataObject, responceCallback) {
-	connection.db.query('UPDATE post SET isDeleted = false WHERE threadId = ?', 
-				[dataObject.thread], 
+	connection.db.query('UPDATE post SET isDeleted = false WHERE threadId = ?',
+				[dataObject.thread],
 				function(err, res) {
 					if (err) err = helper.mysqlError(err.errno);
 					if (err) responceCallback(err.code, err.message);
 					else {
-						connection.db.query('UPDATE thread SET isDeleted = false, posts = posts + ? WHERE id = ?', 
-							[res.changedRows, dataObject.thread], 
+						connection.db.query('UPDATE thread SET isDeleted = false, posts = posts + ? WHERE id = ?',
+							[res.changedRows, dataObject.thread],
 							function(err, res) {
 								if (err) err = helper.mysqlError(err.errno);
 								if (err) responceCallback(err.code, err.message);
@@ -243,8 +243,8 @@ module.exports.restore =  function(dataObject, responceCallback) {
 }
 
 module.exports.subscribe =  function(dataObject, responceCallback) {
-	connection.db.query('INSERT INTO subscribes (userEmail, threadID) values (?, ?);', 
-		[dataObject.user, dataObject.thread], 
+	connection.db.query('INSERT INTO subscribes (userEmail, threadID) values (?, ?);',
+		[dataObject.user, dataObject.thread],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -253,8 +253,8 @@ module.exports.subscribe =  function(dataObject, responceCallback) {
 }
 
 module.exports.unsubscribe =  function(dataObject, responceCallback) {
-	connection.db.query(' DELETE FROM subscribes WHERE (userEmail = ?) AND (threadID = ?);', 
-		[dataObject.user, dataObject.thread], 
+	connection.db.query(' DELETE FROM subscribes WHERE (userEmail = ?) AND (threadID = ?);',
+		[dataObject.user, dataObject.thread],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
@@ -263,20 +263,20 @@ module.exports.unsubscribe =  function(dataObject, responceCallback) {
 }
 
 module.exports.update =  function(dataObject, responceCallback) {
-	connection.db.query('UPDATE thread SET message = ?, slug = ? WHERE id = ?;', 
-		[dataObject.message, dataObject.slug, dataObject.thread], 
+	connection.db.query('UPDATE thread SET message = ?, slug = ? WHERE id = ?;',
+		[dataObject.message, dataObject.slug, dataObject.thread],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
-			if (err) responceCallback(err.code, err.message) 
+			if (err) responceCallback(err.code, err.message)
 			else {
-				module.exports.details({thread: dataObject.thread}, responceCallback);	
+				module.exports.details({thread: dataObject.thread}, responceCallback);
 			}
 		});
 }
 
 module.exports.vote =  function(dataObject, responceCallback) {
-	connection.db.query('UPDATE thread SET points = points + ?,  likes = likes + IF(? = 1, 1, 0),  dislikes = dislikes + IF(? = -1, 1, 0) WHERE id = ?;', 
-		[dataObject.vote, dataObject.vote, dataObject.vote, dataObject.thread], 
+	connection.db.query('UPDATE thread SET points = points + ?,  likes = likes + IF(? = 1, 1, 0),  dislikes = dislikes + IF(? = -1, 1, 0) WHERE id = ?;',
+		[dataObject.vote, dataObject.vote, dataObject.vote, dataObject.thread],
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			if (err) responceCallback(err.code, err.message);
