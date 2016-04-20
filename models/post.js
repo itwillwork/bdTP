@@ -36,7 +36,7 @@ module.exports.create =  function(dataObject, responceCallback) {
 			 *
 			 */
 			//получаем MaterPath родителя
-			connection.db.query("SELECT materPath FROM post WHERE (id = ?) AND (threadId = ?);",
+			connection.db.query("SELECT materPath FROM post WHERE (id = ?);",
 				[dataObject.parent, dataObject.thread],
 				function(err, res) {
 					if (err) callback( helper.mysqlError(err.errno) , null);
@@ -48,14 +48,14 @@ module.exports.create =  function(dataObject, responceCallback) {
 							parentMathPath = res[0].materPath;
 						}
 						//максимальный номер ребенка по маске из родителя
-						connection.db.query('SELECT MAX(materPath) AS max FROM post WHERE (materPath LIKE ?) AND (threadId = ?) ORDER BY materPath',
-							[parentMathPath + '__', dataObject.thread],
+						connection.db.query('SELECT materPath AS max FROM post WHERE (threadId = ?) AND (materPath LIKE ?) ORDER BY materPath DESC LIMIT 1',
+							[dataObject.thread, parentMathPath + '__'],
 							function(err, res) {
 								if (err) callback( helper.mysqlError(err.errno) , null);
 								else {
 									//формирование следующего нового MaterPath
 									var newMaterPath;
-									if (res[0].max === null) {
+									if (res.length === 0) {
 										//предков этого parenta нет, поэтому создаем новый уровень вложенности
 										newMaterPath = parentMathPath + '00';
 									} else {
