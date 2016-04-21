@@ -293,8 +293,8 @@ module.exports.moreDetails = function(dataObject, listFollowers, listFollowing, 
  * составитель запросов для user.ListPosts
  */
 function getSQLforListPosts(dataObject) {
-	sql = "SELECT date, dislikes, forumShortname, post.id AS postId, isApproved, isDeleted, isEdited, isHighlighted, isSpam, likes, message, parent, points, threadId, email FROM user JOIN post ON userEmail = email "
-	sql += 'WHERE (email = "' + dataObject.user + '") ';
+	sql = "SELECT date, dislikes, forumShortname, id AS postId, isApproved, isDeleted, isEdited, isHighlighted, isSpam, likes, message, parent, points, threadId, userEmail AS email FROM post "
+	sql += 'WHERE (userEmail = "' + dataObject.user + '") ';
 
 	if (dataObject.since) {
 		sql += ' AND (date >= "' + dataObject.since + '") ';
