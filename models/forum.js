@@ -178,15 +178,12 @@ module.exports.listThreads = function(dataObject, responceCallback) {
 }
 
 function getSQLForListUsers(wherefrom) {
-	/**
-	 * SELECT post.userEmail FROM forum JOIN post ON post.forumShortname = forum.shortname JOIN user ON user.email = post.userEmail where shortname = "forumwithsufficientlylargename" AND user.id >= 2;
-	 *   AND user.id >= 2;
-	 */
 	var sql = 'SELECT DISTINCT userEmail AS uEmail FROM post ';
 
-	sql += ' JOIN user ON user.email = post.userEmail AND post.isDeleted = false';
+	sql += ' JOIN user ON user.email = post.userEmail ';
 
-	sql += 'WHERE post.forumShortname = "' + wherefrom.forum + '" ';
+	sql += ' WHERE post.forumShortname = "' + wherefrom.forum + '" ';
+	sql += ' AND post.isDeleted = false '
 	if (wherefrom.since_id) {
 		sql += ' AND user.id >= ' + wherefrom.since_id;
 	}

@@ -208,7 +208,7 @@ module.exports.remove =  function(dataObject, responceCallback) {
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			else {
-				if (res.length == 0) err = helper.norecord;
+				if (res.length == 0) err = error.norecord;
 			}
 			if (err) responceCallback(err.code, err.message)
 			else {
@@ -247,9 +247,9 @@ module.exports.restore =  function(dataObject, responceCallback) {
 		function(err, res) {
 			if (err) err = helper.mysqlError(err.errno);
 			else {
-				if (res.length == 0) err = helper.norecord;
+				if (res.length === 0) err = error.norecord;
 			}
-			if (err) responceCallback(err.code, err.message)
+			if (err) responceCallback(err.code, err.message);
 			else {
 				async.parallel([
 					function (callback) {
