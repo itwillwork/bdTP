@@ -184,10 +184,9 @@ function getSQLForListUsers(wherefrom) {
 	 */
 	var sql = 'SELECT DISTINCT userEmail AS uEmail FROM post ';
 
-	sql += ' JOIN user ON user.email = post.userEmail ';
+	sql += ' JOIN user ON user.email = post.userEmail AND post.isDeleted = false';
 
-	sql += ' WHERE isDeleted = false ';
-	sql += ' AND post.forumShortname = "' + wherefrom.forum + '" ';
+	sql += 'WHERE post.forumShortname = "' + wherefrom.forum + '" ';
 	if (wherefrom.since_id) {
 		sql += ' AND user.id >= ' + wherefrom.since_id;
 	}

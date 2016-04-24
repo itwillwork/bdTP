@@ -42,8 +42,6 @@ module.exports.details =  function(dataObject, responceCallback) {
 		responceCallback(error.requireFields.code, error.requireFields.message);
 		return;
 	}
-	//responceCallback(0, helper.possibleValuesForVarieble(dataObject.related, ['user', 'forum']));
-	//return;
 	if (!helper.possibleValuesForVarieble(dataObject.related, ['user', 'forum'])) {
 		responceCallback(error.semantic.code, error.semantic.message);
 		return;
