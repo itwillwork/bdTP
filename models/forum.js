@@ -73,7 +73,7 @@ connection.db.query('SELECT * FROM forum WHERE shortname = ?',
                 var userObject = {
                     user: res.userEmail
                 }
-                userModel.moreDetails(userObject, userObject, userObject,
+                userModel.moreDetails(userObject,
                     wrapperFunctionForDetails(responceCallback, res));
             } else {
                 responceCallback(0, views.forum(res, res.userEmail));
@@ -174,8 +174,8 @@ connection.db.query(getSQLforlistThreads(dataObject), [], function(err, res) {
 
 function getSQLForListUsers(wherefrom) {
     /*
-    SELECT DISTINCT userEmail AS uEmail FROM post LEFT JOIN user  
- 	ON user.email = post.userEmail WHERE post.forumShortname = "kx16gpbia" 
+    SELECT DISTINCT userEmail AS uEmail FROM post LEFT JOIN user
+ 	ON user.email = post.userEmail WHERE post.forumShortname = "kx16gpbia"
  	AND post.isDeleted = false ORDER BY user.name asc LIMIT 72;
      */
     var sql = 'SELECT DISTINCT userEmail AS uEmail FROM post ';
@@ -220,7 +220,7 @@ connection.db.query(getSQLForListUsers(dataObject), function(err, res) {
                 var userObject = {
                     user: elem.uEmail
                 }
-                userModel.moreDetails(userObject, userObject, userObject, function(code, res) {
+                userModel.moreDetails(userObject, function(code, res) {
                     callback(null, res);
                 });
             }

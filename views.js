@@ -51,18 +51,12 @@ module.exports.user = function (dataObject, followerData, folowingData, subscrip
 	return {
 		"about": dataObject.about || null,
 		"email": dataObject.email,
-		"following": followerData.map(function(elem) {
-					  return elem.followeeEmail;
-					}),
-		"followers": folowingData.map(function(elem) {
-					  return elem.followerEmail;
-					}) ,
+		"following": followerData,
+		"followers": folowingData,
 		"id": dataObject.id,
 		"isAnonymous": !!(dataObject.isAnonymous) ,
 		"name": dataObject.name || null,
-		"subscriptions": subscriptionsData.map(function(elem) {
-					  return elem.threadId;
-					}) ,
+		"subscriptions": subscriptionsData,
 		"username": dataObject.username || null
 	}
 }

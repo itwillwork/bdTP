@@ -65,7 +65,7 @@ module.exports.details =  function(dataObject, responceCallback) {
 							var userObject = {
 								user: res.userEmail
 							}
-							userModel.moreDetails(userObject, userObject, userObject, function(code, res){
+							userModel.moreDetails(userObject, function(code, res){
 								callback(null, res);
 							});
 						} else {
