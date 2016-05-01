@@ -234,6 +234,8 @@ function getSQLForFollowers (target, wherefore, parameter) {
 }
 
 module.exports.moreDetails = function(dataObject, responceCallback) {
+responceCallback(0, "OK");
+return;
   /*SELECT about, email, user.id, GROUP_CONCAT(DISTINCT f1.followeeEmail SEPARATOR ', ') AS followers, GROUP_CONCAT(DISTINCT f2.followerEmail SEPARATOR ', ') AS following, isAnonymous, name, GROUP_CONCAT(DISTINCT threadId SEPARATOR ', ') AS subscriptions, username
   FROM user
   LEFT JOIN subscribes ON email = userEmail
