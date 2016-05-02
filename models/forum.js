@@ -110,8 +110,7 @@ function getSQLforListPosts(dataObject) {
 }
 
 module.exports.listPosts = function(dataObject, responceCallback) {
-responceCallback(0, "OK");
-return;
+//TODO оптимизировать
 connection.db.query(getSQLforListPosts(dataObject), [], function(err, res) {
     if (err)
         err = helper.mysqlError(err.errno);
@@ -208,8 +207,7 @@ if (!helper.requireFields(dataObject, ['forum'])) {
     responceCallback(error.requireFields.code, error.requireFields.message);
     return;
 }
-responceCallback(0, "OK");
-return;
+//TODO оптимизировать
 connection.db.query(getSQLForListUsers(dataObject), function(err, res) {
     if (err)
         err = helper.mysqlError(err.errno);
