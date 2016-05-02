@@ -178,20 +178,24 @@ function getSQLForListUsers(wherefrom) {
     SELECT DISTINCT userEmail AS uEmail FROM post LEFT JOIN user
  	ON user.email = post.userEmail WHERE post.forumShortname = "kx16gpbia"
  	AND post.isDeleted = false ORDER BY user.name asc LIMIT 72;
-     */
-    var sql = 'SELECT DISTINCT userEmail AS uEmail FROM post ';
 
-    sql += ' LEFT JOIN user ON user.email = post.userEmail ';
+     explain SELECT * FROM user WHERE email IN (
+       SELECT DISTINCT userEmail FROM post WHERE forumShortname = 's8dge'
+     ) and id > 0 ORDER BY name ASC LIMIT 29;
+*/
 
-    sql += ' WHERE post.forumShortname = "' + wherefrom.forum + '" ';
-    sql += ' AND post.isDeleted = false '
+    var sql = 'SELECT email AS uEmail FROM user WHERE email IN ( ';
+
+    sql += ' SELECT DISTINCT userEmail FROM post ';
+
+    sql += ' WHERE forumShortname = "' + wherefrom.forum + '" )';
     if (wherefrom.since_id) {
-        sql += ' AND user.id >= ' + wherefrom.since_id;
+        sql += ' AND id >= ' + wherefrom.since_id;
     }
     if (wherefrom.order !== 'asc') {
         wherefrom.order = 'desc';
     }
-    sql += ' ORDER BY user.name ' + wherefrom.order;
+    sql += ' ORDER BY name ' + wherefrom.order;
     if (wherefrom.limit) {
         sql += ' LIMIT ' + wherefrom.limit;
     }
